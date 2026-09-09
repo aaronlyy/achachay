@@ -97,6 +97,16 @@ Konsequenzen für die Arbeitsweise:
   (den `add_function_param` anlegt), bricht der Schreibvorgang ab. Entweder ohne Rückgabewert bauen
   und die Verzweigung beim Aufrufer lassen, oder: Body ohne `return` schreiben, dann
   `add_function_param`, dann `connect_pins` von Hand.
+- **Type-Ids verschlucken Unterstriche.** `S_PlayerStats` → `Utilities|Struct|MakeSPlayerStats`,
+  `ZZTest_interface` → `ZZTestInterface`. Wer nach dem Asset-Namen mit Unterstrich sucht, findet
+  nichts und hält es fälschlich für unmöglich.
+- **Node-Registrierung ist träge.** Make-/Break-/SetMembers-Nodes eines eigenen Structs tauchen erst
+  auf, wenn der Struct irgendwo in einem Graph benutzt wird. Eine leere `find_node_types`-Antwort
+  heißt **nicht** „gibt es nicht“ — erst Namensform prüfen, dann eine Referenz anlegen, dann erneut
+  suchen.
+- **`add_struct_function_param`** legt Parameter beliebiger UStruct-Typen an, auch eigener —
+  `add_function_param` kann das nicht. Bei einem Struct-Rückgabewert liegen die Felder danach als
+  einzelne Pins am Return-Node; ein Make-Node wird gar nicht gebraucht.
 - **Enhanced-Input-Events** heißen `Input|EnhancedActionEvents|EnhancedInputActionIA_<Name>` und
   lassen sich nur per `create_node` anlegen, nicht über die `(event …)`-Form des DSL. Danach
   `Triggered` und `ActionValue` von Hand verbinden.
@@ -109,6 +119,17 @@ Konsequenzen für die Arbeitsweise:
   Neues Asset gleichen Typs: ein bestehendes duplizieren und die Properties umsetzen (hat für
   `IA_Dash` → `IA_Aim` mit `ValueType: Axis2D` funktioniert).
 - Enums, Structs, Widgets und Input Actions „from scratch" gehen nicht. **Vom Nutzer anlegen lassen**
+- **`BlueprintTools.create` kann keine Blueprint Interfaces.** Mit `asset_type`
+  `/Script/CoreUObject.Interface` entsteht ein **normales** Blueprint (`BlueprintType: BPTYPE_Normal`)
+  mit UInterface als Elternklasse. Es kompiliert, nimmt Funktionen an und liefert sogar
+  `Class|<Name>|<Fn>`-Nodes — taucht im Editor aber **nicht** im Interface-Picker auf. Vom Nutzer
+  anlegen lassen. Prüfbar über `get_asset_tags` → `BlueprintType`.
+- **Ein Interface einem Blueprint zuzuweisen geht gar nicht.** Kein Werkzeug dafür, und die
+  Blueprint-Asset-Properties sind über `refPath` nicht erreichbar — der Pfad löst auf die generierte
+  Klasse auf. Immer vom Nutzer setzen lassen.
+- **Komponenten kann man Blueprints nicht hinzufügen.** Workaround: eine Elternklasse wählen, die die
+  gewünschte Komponente mitbringt — `StaticMeshActor` statt `Actor`, wenn ein sichtbares Mesh
+  gebraucht wird.
   und danach befüllen.
 
 ### Programmatic Toolset
@@ -167,6 +188,16 @@ mit Ausnahme der einen zurückgestellten BeginPlay-Initialisierung oben.
 
 ---
 
+## 4c. Merkposten für Phase 1
+
+**Die Waffe muss entlang der Control Rotation feuern, nicht entlang `GetActorForwardVector`.**
+Am Character steht `bUseControllerRotationYaw = false` und am CharacterMovement
+`bUseControllerDesiredRotation = true` mit `RotationRate.Yaw = 1080`. Der Körper dreht sich also
+bewusst mit Verzögerung nach, während die Control Rotation sofort auf dem Ziel steht. Wer aus der
+Actor-Vorwärtsrichtung schießt, trifft bei schnellen Mausbewegungen sichtbar daneben.
+
+---
+
 ## 5. Konventionen
 
 - Alles unter `Content/Achachay/`, gegliedert in `Core`, `Player`, `Levels`, `Art`, `RecordPlayer`.
@@ -176,6 +207,9 @@ mit Ausnahme der einen zurückgestellten BeginPlay-Initialisierung oben.
 - Zustand, der einen Levelwechsel überlebt, gehört in `GI_Achachay`; nicht in den GameState (der
   stirbt beim Wechsel) und nicht in den PlayerController (dreimal vorhanden).
 - Kein Replication-Code. Single Player.
+- **`docs/PLAN.md` ist die einzige Quelle für den Plan.** Es gibt ein älteres Artifact mit demselben
+  Inhalt — das ist bewusst stillgelegt und wird **nicht** mehr nachgezogen. Nicht "hilfsbereit"
+  synchronisieren.
 
 ---
 

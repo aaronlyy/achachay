@@ -6,9 +6,10 @@ Top-Down-Wave-Shooter mit Extraktions-Loop und permanenter Progression. Du über
 lange du kannst, nimmst das Geld mit rein, kaufst dich stärker, gehst wieder raus. Die Wellen
 starten bei jedem Rausgehen wieder bei 1 — weiter kommst du nur, weil *du* stärker geworden bist.
 
-Du hast dabei genau eine Waffe. Sie frisst jedes Kaliber, das es gibt, und **Kaliber sind die
-Progression**: von 6mm bis .50 BMG kaufst du dich hoch, und mit jedem Wechsel ändern sich Magazin,
-Feuerrate, Reload und Durchschlag.
+Du hast dabei genau eine Waffe. Sie frisst jedes Kaliber, das es gibt — und **Munition ist die
+Währung des Spiels**: 6mm ist gratis und unbegrenzt, alles darüber kaufst du vor jedem Run
+packungsweise. Jeder Schuss kostet damit echtes Geld, und jeder Safehouse-Besuch wird zur Frage,
+ob du jetzt einkaufst oder auf .50 BMG sparst.
 
 ---
 
@@ -68,98 +69,110 @@ spürbar darunter liegen.
 
 ## Loadout
 
-Vier feste Slots, kein Inventar, keine Verwaltung. Die Waffe selbst wechselt nie — nur das Kaliber,
-das sie gerade verschießt.
+Keine Slots, kein Inventar. Du hast **eine Waffe**, und ein Knopf wechselt durch die Kaliber, für die
+du Munition dabei hast. Heilung und Granate liegen auf zwei eigenen Tasten.
 
-| Slot | Inhalt | |
-|---|---|---|
-| **1** | Kaliber A | Dauerhaft freigeschaltet, Vorrat unbegrenzt |
-| **2** | Kaliber B | Dauerhaft freigeschaltet, Vorrat unbegrenzt |
-| **3** | Heilung | Verbraucht sich, vor dem Rausgehen kaufen |
-| **4** | Granate | Verbraucht sich, nur wenn gekauft |
+**6mm ist immer dabei, kostenlos und unbegrenzt.** Es ist der Boden, unter den du nie fallen kannst —
+ab höheren Wellen reicht es nur noch, wenn du sauber zielst und dich gut bewegst. Alles darüber
+kaufst du vor jedem Run als Munition.
 
-Auf dem Gamepad übernehmen Steuerkreuz oder Schultertaste das Wechseln zwischen den beiden
-Kalibern. Die Ziffern 1–4 gelten nur für Tastatur.
+Drei Regeln, die den Wechsel angenehm machen:
+
+- Der Wechsel **überspringt leere Kaliber**. Bei den Preisen trägst du selten mehr als zwei oder drei
+  gleichzeitig, der Kreis bleibt also kurz.
+- Ist ein Kaliber leergeschossen, fällt die Waffe **automatisch auf 6mm zurück** — kein Klicken ins
+  Leere mitten in der Welle.
+- Das HUD zeigt **alle mitgeführten Kaliber mit ihrem Vorrat**, das aktive ist hervorgehoben.
+
+Belegung: Mausrad am PC, Steuerkreuz am Gamepad.
 
 ### Stationen im Safehouse
 
-- **Munitionskiste** — eine pro Kaliber. Hingehen, Interagieren: schaltet das Kaliber beim ersten
-  Mal dauerhaft frei und legt es auf einen Slot. Kaufen und Ausrüsten sind derselbe Handgriff, es
-  gibt keinen Shop-Bildschirm.
-- **Werkbank** — die drei permanenten Upgrades: Speed, Armor, Health. Keine Schadens-Upgrades,
-  Schaden kaufst du in Form neuer Kaliber.
-- **Vorratsregal** — Heilung und Granaten, einzeln pro Run gekauft.
+- **Munitionskiste** — eine pro Kaliber. Hingehen, interagieren, eine Packung kaufen. Beliebig oft
+  wiederholbar. Keine Freischaltung, kein Shop-Bildschirm: Wer bezahlen kann, kauft.
+- **Werkbank** — die drei permanenten Upgrades: Speed, Armor, Health.
+- **Vorratsregal** — Heilung und Granaten, einzeln gekauft.
 
-### Kaliber-Leiter (Startvorschlag)
+### Preise (Startvorschlag)
 
-| Kaliber | Magazin | Charakter | Rolle |
+Bei etwa 1 Dollar pro Kill und 150–250 Dollar aus einem gut gelaufenen Run:
+
+| Kaliber | Packung | Preis | Charakter |
 |---|---|---|---|
-| 6mm | 40 | Dauerfeuer, kaum Rückstoß, sehr wenig Schaden | Startkaliber |
-| 9mm | 30 | Schnell, kurzer Reload, spürbarer Schaden | Allrounder früh |
-| 5.56×45 | 30 | Ausgewogen, gute Reichweite | Arbeitspferd |
-| 7.62×39 | 30 | Härter, langsamer, streut mehr | Allrounder spät |
-| 12 Gauge | 6 | Mehrere Projektile pro Schuss, kurze Reichweite | Massen auf Distanz null |
-| .308 | 10 | Präzise, hoher Einzelschaden, langer Reload | Elitegegner |
-| .50 BMG | 3 | Durchschlägt alles in einer Linie, sehr langer Reload | Tanks und Boss |
+| 6mm | ∞ | **frei** | Dauerfeuer, kaum Schaden — der Boden |
+| 9mm | 50 | 15 | Arbeitspferd, praktisch immer dabei |
+| .45 ACP | 50 | 30 | Langsamer, härter |
+| 7.62×39 (AK) | 40 | 60 | Dauerfeuer mit Wumms |
+| .44 Magnum | 20 | 80 | Wenige Schuss, hoher Einzelschaden |
+| .50 BMG | 10 | **250** | Durchschlägt eine Reihe — etwa ein ganzer Run |
+| Heilung | 1 | 60 | |
+| Granate | 1 | 80 | |
 
-Werte zum Kaputt-Testen, nicht zum Übernehmen.
+.50 BMG kostet ungefähr einen kompletten erfolgreichen Run. Du musst dich bewusst dafür entscheiden
+und einmal auf alles andere verzichten.
 
-> In der Top-Down-Ansicht siehst du die Patrone nie — der Kaliber-Mesh wird nur in der
-> Munitionskiste gebraucht. Was der Spieler im Kampf unterscheidet, ist das **Projektil**:
-> Tracer-Größe, Farbe, Einschlag. Dort gehört das visuelle Budget hin.
+**Übrige Munition bleibt beim Extrahieren erhalten und verfällt beim Tod** — dieselbe Regel wie beim
+Geld. Sonst wäre Einkaufen Buchhaltung statt Planung.
 
----
+> In der Top-Down-Ansicht siehst du die Patrone nie — der Kaliber-Mesh wird nur in der Munitionskiste
+> gebraucht. Was der Spieler im Kampf unterscheidet, ist das **Projektil**: Tracer-Größe, Farbe,
+> Einschlag. Dort gehört das visuelle Budget hin.
 
 ## Festgelegt
 
 | | |
 |---|---|
-| **Waffe** | Genau eine, für immer. Sie verschießt jedes Kaliber — das Kaliber ist die Waffe. |
-| **Inventar** | Vier feste Slots. Kein Grid, kein Drag & Drop. |
-| **Kaliberkauf** | Diegetisch über Munitionskisten, hingehen und interagieren. Kein Shop-Widget. |
-| **Upgrades** | Genau drei: Speed, Armor, Health. |
-| **Munition** | Kaliber wird einmal freigeschaltet, danach unbegrenzt. Magazin und Nachladen bleiben als Taktgeber. |
-| **Verbrauchsgüter** | Nur Heilung und Granate. Bei Benutzung weg — und beim Tod ebenfalls. |
-| **Tod** | Das gesamte im Run gesammelte Geld ist weg. Kaliber und Upgrades bleiben. |
-| **Extraktion** | Nach jeder Welle 15 Sekunden, um zurück ins Safehouse zu laufen. |
+| **Waffe** | Genau eine, für immer. Sie verschießt jedes Kaliber. |
+| **Kaliberwechsel** | Ein Knopf wechselt durch, leere werden übersprungen. Keine Slots. |
+| **Munition** | Wird vor jedem Run als Packung gekauft und verbraucht sich. 6mm ist frei und unbegrenzt. Keine Freischaltung. |
+| **Magazin** | Magazin und Nachladen bleiben als Taktgeber — der Vorrat ist davon getrennt. |
+| **Upgrades** | Genau drei: Speed, Armor, Health. Dauerhaft. |
+| **Stamina** | Dashes kosten Stamina, die sich nachlädt. Ersetzt den festen Cooldown. |
+| **Verbrauchsgüter** | Heilung und Granate, einzeln gekauft. Bei Benutzung weg — und beim Tod ebenfalls. |
+| **Tod** | Run-Geld, gekaufte Munition und Verbrauchsgüter sind weg. Upgrades bleiben. |
+| **Extraktion** | Nach jeder Welle 15 Sekunden zurück ins Safehouse. Übriges bleibt erhalten. |
 | **Wellenende** | Wenn der letzte Gegner stirbt. Kein Timer, keine Obergrenze. |
-| **Wellentakt** | Nach oben wachsen Menge und Härte der Gegner. Wie lange eine Welle dauert, ergibt sich daraus — vorgegeben wird es nicht. |
+| **Wellentakt** | Nach oben wachsen Menge und Härte der Gegner. |
 | **Boss** | Am Ende der zehnten Welle. Erstmal schlicht: sehr viel HP. |
 | **Eingabe** | Maus/Tastatur **und** Gamepad, beide vollwertig. |
 | **Character-Anpassung** | Raus. |
 | **Netzwerk** | Keine Replikation. |
 | **Level** | Handgebaut, keine prozedurale Generierung. |
-| **Dash** | Darf umgebaut werden. |
 
 ### Bleibt zum Austesten
 
-**Wird das höchste Kaliber strikt das beste?** — Empfehlung: nein, stärker aber schlechter gegen
-Massen. Wenn .50 BMG in jeder Lage gewinnt, legst du es am Ende auf beide Slots und der Wechsel ist
-tot. Die Auflösung liegt in der Fiktion selbst: großes Kaliber heißt kleines Magazin, langsame
-Feuerrate, langer Reload.
+**Trägt die Ökonomie?** Bei 1 Dollar pro Kill und 15 Dollar für 50 Schuss 9mm zahlst du 30 Cent pro
+Kugel — jeder Fehlschuss kostet real Geld. Das ist beabsichtigt und zwingt zum Zielen, kann aber
+kippen. Prüfstein: Wenn du nach drei Runs immer noch ausschließlich 6mm schießt, sind die Preise zu
+hoch oder das Kopfgeld zu niedrig.
 
-*Prüfstein: Wenn du am Ende mit dem Endkaliber auf beiden Slots spielst, ist die Leiter falsch
-gestaffelt.*
+**Ist .50 BMG seinen Preis wert?** 250 Dollar für 10 Schuss lohnen sich nur, wenn der Durchschlag
+mehrere Gegner pro Kugel nimmt. Damit erzieht die Ökonomie dich dazu, auf Linien zu warten statt zu
+spammen — vorausgesetzt, die Wellen liefern überhaupt Linien. Falls nicht, ist das Kaliber tot.
 
----
-
-## Bestand (Stand 09.09.2026)
+## Bestand (Stand 09.09.2026, abends)
 
 | Asset | Zustand | Anmerkung |
 |---|---|---|
-| `L_Menu` / `L_Outside` / `L_Safehouse` | Rohbau | Nur Licht, Himmel, Boden, PlayerStart. Keine Geometrie, kein NavMesh. |
-| `BP_PlayerCharacter` | Teilweise | `StartDash` funktioniert, aber nirgends aufgerufen. Kamera-Rig vorhanden (`springArm`, `camera`, `characterMesh` als StaticMesh), nicht auf Top-Down konfiguriert. |
-| `PC_Outside` / `PC_Safehouse` | Gerüst | Mapping-Context wird gesetzt. `IA_Move` und `IA_Dash` existieren als Events ohne Nodes. |
-| `GM_Menu` / `GM_Outside` / `GM_Safehouse` | Verdrahtet | Pawn- und Controller-Klassen korrekt. Graphs leer. |
-| `GI_Achachay` | Leer | Als GameInstance gesetzt, enthält nichts. |
-| `IMC_Gameplay`, `IA_Move`, `IA_Dash` | Vorhanden | Enhanced Input steht. Es fehlen Aim, Fire, Reload, Interact, Kaliberwechsel, Item-Tasten. |
-| `BP_RecordPlayer` | Fertig | Zufallstrack aus `Tracks`. Instanz in L_Menu hat nur `loop_menu1`. |
-| Musik (7 Loops) | 6 ungenutzt | 3× outside, 3× safehouse nirgends referenziert. |
-| Collision-Channel „Dash" | Vorhanden | Eigener Trace-Channel, von `StartDash` genutzt. |
-| Widgets, SaveGame, Data Assets | Nichts | — |
-| Waffen, Gegner, Wellen | Nichts | Der gesamte Kern. |
+| `BP_PlayerCharacter` | **Läuft** | Bewegung, Zielen mit Maus und Gamepad, Geräteerkennung, Dash mit Stamina |
+| ↳ Funktionen | | `GetAimLocation`, `ApplyAimRotation`, `UpdateActiveInputDevice`, `UpdateGamepadAim`, `RegenerateStamina`, `SpendDashStamina`, `StartDash` |
+| `GI_Achachay` | Angefangen | `ActiveInputDevice`, Dispatcher `OnInputDeviceChanged`, `SetDeviceKeyboardMouse`, `SetDeviceGamepad`. Geld, Upgrades, Munition fehlen. |
+| `E_InputDevice` | Vorhanden | `KeyboardMouse`, `Gamepad` |
+| `IMC_Gameplay` | Vorhanden | 9 Mappings: Move (WASD + Stick), Dash (Space, Schulter, Stick-Klick), Aim (rechter Stick) |
+| Input Actions | Teilweise | `IA_Move`, `IA_Dash`, `IA_Aim`. Es fehlen Fire, Reload, Interact, SwitchCaliber, UseHeal, UseGrenade. |
+| `L_Menu` / `L_Outside` / `L_Safehouse` | Rohbau | Licht, Himmel, Boden, PlayerStart. Keine Geometrie, kein NavMesh. |
+| `GM_*` | Verdrahtet | Pawn- und Controller-Klassen korrekt, Graphs leer |
+| `BP_RecordPlayer` | Fertig | Zufallstrack; Instanz in L_Menu hat nur `loop_menu1` |
+| Musik (7 Loops) | 6 ungenutzt | |
+| Widgets, SaveGame, Data Assets | Nichts | |
+| Waffe, Gegner, Wellen | Nichts | Der gesamte Kern |
 
----
+**Zwei Handverdrahtungen offen** (Details in `AGENTS.md`): Die GameInstance erfährt noch nicht, welches
+Eingabegerät aktiv ist.
+
+**Getrimmte Werte.** Movement: MaxWalkSpeed 800, MaxAcceleration 8192, BrakingDeceleration 8192,
+GroundFriction 12, BrakingFriction 12. Dash: Distanz 650, Restgeschwindigkeit 1200, Kosten 34 von 100
+Stamina, Regen 25/s nach 0,5 s Verzögerung, Mindestpause 0,25 s.
 
 ## Zeitplan bis 25.09.
 
@@ -172,7 +185,7 @@ Gate-Termine sind die eigentlichen Fristen.
 | Do 10.09. | 5–8 | Gamepad-Zielen, Geräteerkennung, Dash mit Cooldown, alle Input Actions |
 | Fr 11.09. | 9–12 | Stat-Struct, GameInstance, Charakter liest Werte, SaveGame läuft |
 | Sa 12.09. | 13–16 | Data Assets, Interaktion — und die Waffe schießt zum ersten Mal |
-| So 13.09. | 17–20 | Magazin, zwei Kaliber-Slots, Health, Schaden am Ziel |
+| So 13.09. | 17–20 | Magazin und Vorrat, Kaliberwechsel, Health, Schaden am Ziel |
 | Mo 14.09. | 21 | Gegner läuft auf dich zu und schlägt zu |
 | Di 15.09. | 22 | L_Outside als Graybox mit NavMesh, Rückweg unter 15 s geprüft |
 | **Mi 16.09.** | **23–25** | **Gate 1** — drei Wellen, HUD, Tod. Macht der Fight Spaß? |
@@ -204,7 +217,7 @@ In dieser Reihenfolge streichen:
 3. **Gegner im Menü-Hintergrund** (Schritt 45) — statisches Menü tut es auch.
 4. **Durchschlag** (Schritt 40) — .50 BMG funktioniert auch ohne.
 5. **Kaliber-Leiter von sieben auf vier** — 6mm, 5.56, 12 Gauge, .50 BMG.
-6. **Granate** (Teil von Schritt 41) — nur Heilung auf Slot 3.
+6. **Granate** (Teil von Schritt 41) — nur Heilung, keine Wurfwaffe.
 7. **Gegnertypen von drei auf zwei** — Rusher und Tank, der Schütze ist der aufwendigste.
 
 > **Nie streichen:** der geschlossene Loop, die Tod-Regel, das Rückweg-Fenster, zwei Kaliber mit
@@ -219,8 +232,16 @@ durchgeht, kommt der nächste.
 
 ## Phase 0 — Fundament · bis Sa 12.09.
 
-Am Ende läuft und zielt der Charakter mit beiden Eingabegeräten, dasht mit Cooldown und zieht seine
+Am Ende läuft und zielt der Charakter mit beiden Eingabegeräten, dasht mit Stamina und zieht seine
 Werte aus der GameInstance, die einen Neustart übersteht.
+
+> **Phase 0 abgeschlossen (10.09.).** Schritte 1–14 stehen. Darüber hinaus gebaut: Stamina statt
+> Dash-Cooldown, Rückdrehen in Laufrichtung bei längerem Nicht-Zielen, Mausbewegungs-Erkennung über
+> die Cursorposition, weiches Körper-Nachdrehen über `bUseControllerDesiredRotation`.
+>
+> **Offen aus Phase 0:** Schritt 11 (Character liest Stats aus der GameInstance) und Schritt 12
+> (SaveGame) — beides Cross-Blueprint und daher Handarbeit. Dazu die `Pressed`-Trigger an den
+> Input Actions.
 
 ### 1. SpringArm auf Top-Down stellen
 
@@ -282,22 +303,19 @@ nicht, stimmt Schritt 1 nicht.
 **Probe:** Maus bewegen, dann Stick, dann wieder Maus. Der Charakter springt nicht und folgt immer
 dem zuletzt benutzten Gerät.
 
-### 7. Dash verdrahten und den Cooldown scharf machen
+### 7. Dash: Stamina statt Cooldown ✔
 
-- `IA_Dash`-Event → `StartDash`
-- In `StartDash` das `SetDashReady(true)` am Schleifenende ersetzen: stattdessen
-  `Set Timer by Event` mit `DashCooldown`, der dann `DashReady` auf true setzt
-- Den Break-Pin der `ForLoopWithBreak` anschließen — sobald eine freie Position gefunden ist,
-  abbrechen
-- `DashDir` nutzt `GetLastMovementInputVector`; ohne Eingabe fällt es auf `GetActorForwardVector`
-  zurück, was jetzt die Zielrichtung ist
+- `DashReady` wird jeden Frame **abgeleitet**: genug Stamina **und** Mindestpause vorbei
+- `SpendDashStamina` zieht beim Dash ab und merkt sich den Zeitpunkt
+- `RegenerateStamina` lädt im Tick nach, begrenzt auf `MaxStamina`
+- Das alte `Set DashReady = true` am Schleifenende ist entfernt — es gab den Dash sofort wieder frei
 
-**Probe:** Dash funktioniert, danach 1,5 Sekunden lang nicht erneut. Ohne Bewegungseingabe dasht er
-in Blickrichtung.
+**Probe:** Dreimal hintereinander dashen geht, beim vierten Mal nicht mehr.
 
 ### 8. Restliche Input Actions anlegen
 
 - `IA_Fire`, `IA_Reload`, `IA_Interact`, `IA_SwitchCaliber`, `IA_UseHeal`, `IA_UseGrenade`
+- `IA_SwitchCaliber` ist ein **Durchwechseln**, keine Slot-Wahl — Mausrad und Steuerkreuz
 - Alle in `IMC_Gameplay` mappen, jeweils für Tastatur/Maus **und** Gamepad
 - Noch keine Logik dahinter, nur je ein PrintString
 
@@ -305,17 +323,20 @@ in Blickrichtung.
 
 ### 9. Struct für die Spielerwerte
 
-- Neues Struct `S_PlayerStats`: `MaxHealth`, `MoveSpeed`, `ArmorReduction`, `DashCooldown`
-- Nur die Werte, die von Upgrades verändert werden
+- Neues Struct `S_PlayerStats`: `MaxHealth`, `MoveSpeed`, `ArmorReduction`, `MaxStamina`, `StaminaRegen`
+- Nur Werte, die von Upgrades verändert werden
 
-**Probe:** Struct kompiliert und ist in Blueprints als Variablentyp auswählbar.
+**Probe:** Struct kompiliert und ist als Variablentyp auswählbar.
 
 ### 10. GI_Achachay mit Zustand füllen
 
-- Variablen: `Money`, `RunMoney`, `SpeedLevel`, `ArmorLevel`, `HealthLevel`
-- `UnlockedCalibers` als Array, `SlotA` und `SlotB` als aktive Kaliber
-- Funktion `GetPlayerStats`: rechnet die drei Level in ein `S_PlayerStats` um
-- Die Formel darf simpel sein — `Basis + Level × Schritt` reicht fürs Erste
+- Geld: `Money` (dauerhaft) und `RunMoney` (nur im Run)
+- Upgrade-Level: `SpeedLevel`, `ArmorLevel`, `HealthLevel`
+- **Munitionsvorrat je Kaliber** als Map `CaliberData → Anzahl Schuss`
+- `CurrentCaliber` als aktives Kaliber — keine Slots
+- Verbrauchsgüter: `HealCount`, `GrenadeCount`
+- Funktion `GetPlayerStats`: rechnet die drei Level in ein `S_PlayerStats` um, Formel `Basis + Level × Schritt`
+- `ActiveInputDevice` und die beiden Setter stehen bereits
 
 **Probe:** `GetPlayerStats` liefert bei Level 0 die Basiswerte und bei Level 3 höhere.
 
@@ -339,9 +360,10 @@ schneller.
 ### 13. Data Assets anlegen
 
 - `CaliberData` als PrimaryDataAsset: Anzeigename, Schaden, Magazingröße, Feuerrate, Reloadzeit,
-  Streuung, Projektile pro Schuss, Durchschlag, Projektilfarbe, Mesh, Preis
-- `ItemData`, `UpgradeData`, `WaveData` als leere Gerüste
-- Zwei Test-Kaliber anlegen, die sich maximal unterscheiden: **6mm** und **.50 BMG**
+  Streuung, Projektile pro Schuss, Durchschlag, Projektil-Look, Mesh — dazu **`PackPrice`**,
+  **`RoundsPerPack`** und **`bUnlimited`** (nur für 6mm)
+- `ItemData`, `UpgradeData`, `WaveData` als Gerüste
+- Zwei Test-Kaliber anlegen, die sich maximal unterscheiden: **6mm** (unbegrenzt) und **.50 BMG**
 
 **Probe:** Beide Kaliber-Assets liegen im Content Browser und lassen sich öffnen.
 
@@ -377,21 +399,23 @@ Am Ende ist `L_Outside` spielbar: Waffe, Gegner, drei Wellen, HUD.
 **Probe:** 6mm feuert schnell und schwach, .50 BMG langsam und dick — der Unterschied ist ohne HUD
 sichtbar.
 
-### 17. Magazin und Nachladen
+### 17. Magazin, Nachladen und Vorrat
 
-- Aktueller Magazinstand als Variable, Größe aus dem Kaliber
+- Magazinstand als Variable, Größe aus dem Kaliber
+- **Vorrat getrennt vom Magazin**: Nachladen zieht aus dem Vorrat in der GameInstance
 - Leeres Magazin oder `IA_Reload` startet das Nachladen, Dauer aus dem Kaliber
-- Während des Nachladens kein Feuern, Bewegung bleibt erlaubt
+- 6mm hat `bUnlimited` und zieht keinen Vorrat ab
+- Vorrat und Magazin leer → **automatischer Rückfall auf 6mm**
 
-**Probe:** Magazin leerschießen erzwingt eine Pause. Bei .50 BMG ist sie deutlich länger.
+**Probe:** .50 BMG leerschießen wechselt von selbst auf 6mm, ohne dass du klicken musst.
 
-### 18. Zwei Kaliber-Slots mit Wechsel
+### 18. Kaliber durchwechseln
 
-- `SlotA` und `SlotB` aus der GameInstance lesen
-- `IA_SwitchCaliber` tauscht das aktive Kaliber
-- Magazinstand pro Slot getrennt merken
+- `IA_SwitchCaliber` schaltet auf das nächste Kaliber **mit Vorrat**, leere werden übersprungen
+- 6mm ist immer in der Liste
+- Magazinstand pro Kaliber getrennt merken
 
-**Probe:** Wechsel zwischen den Testkalibern im Spiel, jeweils mit eigenem Magazin.
+**Probe:** Mit zwei Testkalibern durchwechseln, jeweils mit eigenem Magazin.
 
 ### 19. Health-Komponente
 
@@ -438,10 +462,12 @@ Sekunden.
 
 ### 24. Provisorisches HUD
 
-- Health, aktives Kaliber, Magazinstand, aktuelle Welle
+- Health, Stamina, aktuelle Welle, Geld
+- **Alle mitgeführten Kaliber mit Vorrat**, das aktive hervorgehoben
+- Magazinstand des aktiven Kalibers
 - Hässlich ist in Ordnung — es geht um Information, nicht um Gestaltung
 
-**Probe:** Alle vier Werte aktualisieren sich live im Spiel.
+**Probe:** Alle Werte aktualisieren sich live, der Wechsel verschiebt die Hervorhebung.
 
 ### 25. Spielertod
 
@@ -512,10 +538,11 @@ Ab hier ist es dein Spiel und nicht mehr irgendein Wave-Shooter.
 ### 33. Munitionskiste
 
 - Actor mit `BPI_Interactable`, referenziert ein `CaliberData`
-- Erste Interaktion kauft, jede weitere legt das Kaliber auf einen Slot
-- Drei Zustände sichtbar: zu teuer, kaufbar, besessen
+- Interagieren kauft **eine Packung**, beliebig oft wiederholbar
+- Zwei Zustände sichtbar: kaufbar oder zu teuer
+- Gekaufte Schuss landen im Vorrat der GameInstance, nicht im Magazin
 
-**Probe:** Kaufen zieht Geld ab, das Kaliber liegt danach in der Waffe.
+**Probe:** Kaufen zieht Geld ab, der Vorrat steigt um `RoundsPerPack`.
 
 ### 34. Werkbank
 
@@ -548,10 +575,10 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 | 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Munitionskiste im Safehouse |
 | 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
 | 40 | Durchschlag | Große Kaliber treffen mehrere Gegner in einer Linie |
-| 41 | Heilung, Granate, Vorratsregal | Slots 3 und 4, pro Run gekauft, bei Benutzung und bei Tod weg |
+| 41 | Heilung, Granate, Vorratsregal | Eigene Tasten, pro Run gekauft, bei Benutzung und bei Tod weg |
 | 42 | Armor wirksam machen | Schadensreduktion in der Health-Komponente scharf schalten |
 | 43 | Boss | Am Ende von Welle 10, erstmal schlicht sehr viel HP |
-| 44 | Balancing | Kurve so ziehen, dass Welle 10 erst im vierten bis fünften Run fällt. Prüfen, ob das höchste Kaliber auf beiden Slots dominiert. |
+| 44 | Balancing | Kurve so ziehen, dass Welle 10 erst im vierten bis fünften Run fällt. Prüfen, ob sich die teuren Kaliber lohnen. |
 
 ---
 
@@ -590,7 +617,7 @@ Playtest anfassen.
 ## Zwei Dinge, die feststehen
 
 **Drei getrennte Maps heißt: jeder Zustand stirbt beim Wechsel.** Geld, Upgrades, freigeschaltete
-Kaliber, Slot-Belegung, Wellenfortschritt — nichts davon überlebt ein `OpenLevel` von allein. Alles,
+Kaliber, Munitionsvorrat, Wellenfortschritt — nichts davon überlebt ein `OpenLevel` von allein. Alles,
 was den Wechsel überstehen muss, gehört in `GI_Achachay`, alles was einen Neustart überstehen muss,
 zusätzlich ins SaveGame. Das ist der Grund, warum Phase 0 vor allem anderen steht.
 
