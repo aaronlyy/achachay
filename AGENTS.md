@@ -49,6 +49,10 @@ Konsequenzen für die Arbeitsweise:
 - **`Config/DefaultInput.ini` enthält keine Bindings**, nur `AxisConfig` (Deadzones, Sensitivity).
   Alle Bindings laufen über Enhanced Input.
 - Der Spieler-Character nutzt einen **StaticMesh** (`characterMesh`), kein Skeletal Mesh.
+- **Es gibt bewusst kein SaveGame.** `SG_Achachay`, `SaveProgress` und `LoadProgress` existierten am
+  14.09. und wurden auf Wunsch des Nutzers wieder entfernt — siehe `docs/PLAN.md`, Schritt 12. Der
+  Zustand lebt ausschließlich in `GI_Achachay` und ist nach einem Neustart weg. **Das ist so
+  gewollt. Nicht „nachrüsten", ohne dass der Nutzer danach fragt.**
 
 ---
 
@@ -75,6 +79,18 @@ Konsequenzen für die Arbeitsweise:
 - **`read_graph_dsl` gibt Node-IDs aus, die es beim Schreiben nicht gibt.** Gelesen wird z. B.
   `Math|Vector|vector*vector`, schreiben kann man das nicht. Für Arithmetik die generischen
   Operatoren `(+ - * /)` nutzen — die lösen korrekt auf.
+- **`read_graph_dsl` ist keine verlässliche Bestandsaufnahme.** Drei belegte Verzerrungen:
+  Ein Pure-Node, der **in einer Schleife** benutzt wird, wird in der Ausgabe **vor** die Schleife
+  gehoben — als würde er nur einmal ausgewertet. Im Graph hängt er korrekt im Schleifenkörper.
+  Dazu die beiden älteren:
+  Bodies von **Enhanced-Input-Events** werden gar nicht gerendert — die Ausgabe zeigt nur
+  `(event EnhancedInputActionIA_Interact (…))` und schluckt alles, was daran hängt. Und ein
+  **einzelner Break-Node**, dessen Ausgänge mehrfach benutzt werden, erscheint als mehrfach
+  wiederholter Inline-Aufruf, als gäbe es ihn mehrmals. **Wer Nodes zählen oder „ist da nichts?"
+  beantworten will, nimmt `find_nodes` + `get_node_infos`, nicht die DSL-Ausgabe.** (Kostete am
+  14.09. beinahe die falsche Meldung „Interact ist nicht verdrahtet".)
+- **Cast-Type-Ids behalten den Unterstrich.** `Utilities|Casting|CastToGI_Achachay` funktioniert
+  genau so — die Unterstrich-Regel weiter unten gilt für Struct-/Interface-Nodes, nicht für Casts.
 - **Type-IDs mit Klammern brechen den DSL-Parser.** `Math|Intersection|LinePlaneIntersection(Origin&Normal)`
   ist nicht schreibbar. Ausweichen: Rechnung von Hand oder anderen Node wählen.
 - **`find_node_types` findet nichts bei Filtern mit Sonderzeichen** wie `*` oder `+`. Nach dem
@@ -84,11 +100,26 @@ Konsequenzen für die Arbeitsweise:
 - `add_variable` und `add_function_param` können **keine Enums**. Unterstützt: `bool, int, float,
   byte, name, string, text, Vector, Rotator, Transform, Vector2D, LinearColor`. Enum-Variablen muss
   der Nutzer anlegen.
-- **Nodes, die auf ein FREMDES Blueprint zielen, lassen sich nicht erzeugen.** `find_node_types`
-  listet sie mit `context_pins` zwar auf (z. B. `CallFunction|SetDeviceGamepad` auf einer
-  `GI_Achachay`-Referenz), aber weder `write_graph_dsl` noch `create_node` — auch nicht mit
-  `declaring_class` — können sie anlegen. Jeder Cross-Blueprint-Aufruf muss vom Nutzer von Hand
-  verdrahtet werden. **Architektur so entwerfen, dass Cross-Blueprint-Aufrufe selten sind.**
+- **Cross-Blueprint-Nodes gehen doch — der Type-Id muss nur stimmen.** (Korrigiert am 14.09.,
+  die frühere Notiz hier war falsch und hat Handarbeit erzwungen, die nicht nötig war.)
+  Die Form ist `Class|<BlueprintnameOhneUnterstriche>|<Name>`, für Funktionen **und** Variablen:
+
+  | Ziel | Type-Id |
+  |---|---|
+  | Funktion auf `GI_Achachay` | `Class|GIAchachay|GetPlayerStats` |
+  | Variable setzen auf `GI_Achachay` | `Class|GIAchachay|SetMoney` |
+  | Variable lesen auf `GI_Achachay` | `Class|GIAchachay|GetMoney` |
+
+  Das funktioniert per `create_node` **und** per `write_graph_dsl`. Der Zielpin heißt `self` und
+  steht als **letztes** positionales Argument: `(Class|GIAchachay|SetMoney <wert> <ziel>)`.
+
+  Was **nicht** geht: der Name, den `find_node_types` unter `context_pins` ausgibt. Dort erscheint
+  die Fremdvariable als `Variables|Default|SetMoney` — damit schlägt `create_node` mit
+  „does not exist" fehl, auch mit `declaring_class`. Genau diese Fehlmeldung hat zur falschen
+  Schlussfolgerung geführt. **Bei „does not exist" erst die `Class|…`-Form probieren, bevor man
+  etwas für unmöglich erklärt.**
+- **Lazy Registrierung gilt auch hier:** solange kein Graph das fremde Blueprint referenziert,
+  liefert `find_node_types` dafür eine leere Liste. Einen Cast-Node anlegen, dann erneut suchen.
 - **Enum-Literale fallen still auf Index 0 zurück**, wenn der Name nicht auflöst. `"Gamepad"` wurde
   kommentarlos als `NewEnumerator0` geschrieben, ohne Fehler. Beim Schreiben **immer** die internen
   Namen `NewEnumerator0`, `NewEnumerator1`, … verwenden und das Ergebnis per `read_graph_dsl`
@@ -107,6 +138,27 @@ Konsequenzen für die Arbeitsweise:
 - **`add_struct_function_param`** legt Parameter beliebiger UStruct-Typen an, auch eigener —
   `add_function_param` kann das nicht. Bei einem Struct-Rückgabewert liegen die Felder danach als
   einzelne Pins am Return-Node; ein Make-Node wird gar nicht gebraucht.
+- **`ProgrammaticToolset` lohnt sich ab drei Aufrufen.** `execute_tool_script` bündelt beliebige
+  Toolset-Aufrufe in einem Roundtrip. Einmalig `get_execution_environment` lesen. Vorsicht: die
+  Parameternamen dort sind die echten — `add_function_param` will **`param_type`**, nicht
+  `type_name` (anders als `add_variable`).
+- **`find_node_types` ist unvollständig, kein Beweis.** Eine Funktion auf einem fremden Blueprint
+  (`Class|BPWeapon|Fire`) taucht dort teils gar nicht auf, lässt sich per `write_graph_dsl` aber
+  anstandslos anlegen. Nicht listen heißt nicht „gibt es nicht" — die `Class|…`-Form einfach
+  ausprobieren.
+- **Engine-Enums lösen über den Klarnamen auf.** `"SnapToTarget"`, `"KeepWorld"`, `"NoCollision"`,
+  `"AlwaysSpawn"` werden korrekt geschrieben. Die `NewEnumerator<N>`-Regel weiter unten gilt nur für
+  **eigene** Enums. Trotzdem gegenprüfen, der Rückfall auf Index 0 ist still.
+- **Klammer-Type-Ids braucht man meist gar nicht.** `Math|Conversions|ToString(Integer)` bricht den
+  Parser — aber der DSL setzt Konvertierungen von selbst ein. Den Integer direkt an den String-Pin
+  hängen, fertig. Gleiches gilt für Int→Float.
+- **Viele Engine-Nodes haben `self` als erstes positionales Argument.** `Transformation|SetActorScale3D`
+  nimmt `(self, NewScale3D)`, nicht `(NewScale3D)`. Bei „Could not connect pin … The pins may be
+  incompatible types" erst `get_node_type_pins` lesen und dann mit **benannten** Pins schreiben
+  (`:self self :NewScale3D …`) — das ist ohnehin die robustere Schreibweise.
+- **Komponenten zur Laufzeit gehen doch.** `AddComponent|Movement|AddProjectileMovementComponent`
+  und Geschwister existieren als Graph-Nodes. Die Einschränkung weiter unten betrifft nur den
+  **Konstruktionsbaum** (SCS) im Editor, nicht das Anhängen im laufenden Spiel.
 - **Enhanced-Input-Events** heißen `Input|EnhancedActionEvents|EnhancedInputActionIA_<Name>` und
   lassen sich nur per `create_node` anlegen, nicht über die `(event …)`-Form des DSL. Danach
   `Triggered` und `ActionValue` von Hand verbinden.
@@ -127,10 +179,14 @@ Konsequenzen für die Arbeitsweise:
 - **Ein Interface einem Blueprint zuzuweisen geht gar nicht.** Kein Werkzeug dafür, und die
   Blueprint-Asset-Properties sind über `refPath` nicht erreichbar — der Pfad löst auf die generierte
   Klasse auf. Immer vom Nutzer setzen lassen.
-- **Komponenten kann man Blueprints nicht hinzufügen.** Workaround: eine Elternklasse wählen, die die
-  gewünschte Komponente mitbringt — `StaticMeshActor` statt `Actor`, wenn ein sichtbares Mesh
-  gebraucht wird.
-  und danach befüllen.
+- **Komponenten kann man dem Konstruktionsbaum eines Blueprints nicht hinzufügen.** Workaround: eine
+  Elternklasse wählen, die die gewünschte Komponente mitbringt — `StaticMeshActor` statt `Actor`,
+  wenn ein sichtbares Mesh gebraucht wird. (Zur Laufzeit geht es sehr wohl, siehe oben.)
+- **Vorsicht bei `StaticMeshActor` als Elternklasse: Mobility steht auf `Static`.** Damit ignoriert
+  der Actor jedes `SetActorLocation` im Spiel — lautlos, ohne Fehler. Am CDO
+  (`…Default__X_C:StaticMeshComponent0`) auf `Movable` setzen. Hat bei `BP_Projectile` zugeschlagen.
+- **`PrimitiveTools` hilft hier nicht.** Es hängt Mesh-Primitive an **Actors im Level**, nicht an
+  Blueprint-Klassen, und kennt ohnehin nur Würfel, Kugel, Zylinder, Kegel.
 
 ### Programmatic Toolset
 
@@ -169,17 +225,22 @@ und muss nicht „repariert" werden.**
 
 ---
 
-## 4b. Offene Handverdrahtungen (Stand 09.09.2026)
+## 4b. Handverdrahtungen (Stand 14.09.2026)
 
 Diese drei Verbindungen fehlen, weil sie auf ein fremdes Blueprint zielen und daher nicht per
 Toolset erzeugt werden können. Sie sind **kein Versehen** — nicht „aufräumen", sondern vom Nutzer
 setzen lassen.
 
-| Wo | Was | Dringlichkeit |
+**Erledigt (Stand 14.09.).** Die ersten beiden Zeilen sind verdrahtet — der Character cached die
+GI in `StoreEssentialVariables` und ruft `SetDeviceKeyboardMouse` darüber auf. Die dritte ist
+weiterhin offen, aber **nicht mehr Handarbeit**: mit der korrigierten `Class|…`-Form (§3) lässt sie
+sich per Toolset bauen. Spätestens bei Schritt 31 (Levelwechsel) erledigen.
+
+| Wo | Was | Stand |
 |---|---|---|
-| `BP_PlayerCharacter.UpdateActiveInputDevice`, hinter dem Branch | `Get Game Instance` → `Cast to GI_Achachay` → `SetDeviceKeyboardMouse` | nötig, damit die GI überhaupt gefüllt wird |
-| `BP_PlayerCharacter.UpdateGamepadAim`, hinter dem Branch | dasselbe mit `SetDeviceGamepad` | dito |
-| `BP_PlayerCharacter` auf `BeginPlay` | `Get Game Instance` → `Cast to GI_Achachay` → `Get ActiveInputDevice` → Switch → `Set UsingGamepad` | **zurückgestellt.** Ohne sie zielt der Character nach einem Levelwechsel kurz auf den Cursor, bis der Stick bewegt wird. Spätestens bei Schritt 31 (Levelwechsel) erledigen. |
+| `BP_PlayerCharacter.UpdateActiveInputDevice`, hinter dem Branch | `Get Game Instance` → `Cast to GI_Achachay` → `SetDeviceKeyboardMouse` | ✔ erledigt |
+| `BP_PlayerCharacter.UpdateGamepadAim`, hinter dem Branch | dasselbe mit `SetDeviceGamepad` | ✔ erledigt |
+| `BP_PlayerCharacter` auf `BeginPlay` | `Get ActiveInputDevice` → Switch → `Set UsingGamepad` | offen, per Toolset baubar |
 
 Vertrag zwischen den beiden Speicherorten: **Der Character schreibt, die UI liest.** `UsingGamepad`
 am Character ist ein lokaler Cache für die Zielrichtung pro Frame; `ActiveInputDevice` in der

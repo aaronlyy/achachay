@@ -150,29 +150,43 @@ hoch oder das Kopfgeld zu niedrig.
 mehrere Gegner pro Kugel nimmt. Damit erzieht die Ökonomie dich dazu, auf Linien zu warten statt zu
 spammen — vorausgesetzt, die Wellen liefern überhaupt Linien. Falls nicht, ist das Kaliber tot.
 
-## Bestand (Stand 09.09.2026, abends)
+## Bestand (Stand 14.09.2026)
 
 | Asset | Zustand | Anmerkung |
 |---|---|---|
-| `BP_PlayerCharacter` | **Läuft** | Bewegung, Zielen mit Maus und Gamepad, Geräteerkennung, Dash mit Stamina |
-| ↳ Funktionen | | `GetAimLocation`, `ApplyAimRotation`, `UpdateActiveInputDevice`, `UpdateGamepadAim`, `RegenerateStamina`, `SpendDashStamina`, `StartDash` |
-| `GI_Achachay` | Angefangen | `ActiveInputDevice`, Dispatcher `OnInputDeviceChanged`, `SetDeviceKeyboardMouse`, `SetDeviceGamepad`. Geld, Upgrades, Munition fehlen. |
+| `BP_PlayerCharacter` | **Läuft** | Bewegung, Zielen mit Maus und Gamepad, Geräteerkennung, Dash mit Stamina, Interaktion, Stats aus der GI |
+| ↳ Funktionen | | `GetAimLocation`, `ApplyAimRotation`, `UpdateActiveInputDevice`, `UpdateGamepadAim`, `UpdateMouseDelta`, `MarkAimInput`, `RegenerateStamina`, `SpendDashStamina`, `StartDash`, `StoreEssentialVariables`, `UpdateFocus`, `TryInteract`, `ApplyPlayerStats` |
+| `GI_Achachay` | **Steht** | Geld (`Money`/`RunMoney`), Upgrade-Level, `AmmoReserve` (Map String→Int), `CurrentCaliberId`, Verbrauchsgüter, `GetPlayerStats`, Geräteerkennung. EventGraph leer. |
 | `E_InputDevice` | Vorhanden | `KeyboardMouse`, `Gamepad` |
 | `IMC_Gameplay` | Vorhanden | 9 Mappings: Move (WASD + Stick), Dash (Space, Schulter, Stick-Klick), Aim (rechter Stick) |
-| Input Actions | Teilweise | `IA_Move`, `IA_Dash`, `IA_Aim`. Es fehlen Fire, Reload, Interact, SwitchCaliber, UseHeal, UseGrenade. |
+| Input Actions | **Vollständig** | `IA_Move`, `IA_Dash`, `IA_Aim`, `IA_Fire`, `IA_Reload`, `IA_Interact`, `IA_SwitchCaliber`, `IA_UseHeal`, `IA_UseGrenade`. `Pressed`-Trigger fehlen noch. |
 | `L_Menu` / `L_Outside` / `L_Safehouse` | Rohbau | Licht, Himmel, Boden, PlayerStart. Keine Geometrie, kein NavMesh. |
 | `GM_*` | Verdrahtet | Pawn- und Controller-Klassen korrekt, Graphs leer |
 | `BP_RecordPlayer` | Fertig | Zufallstrack; Instanz in L_Menu hat nur `loop_menu1` |
 | Musik (7 Loops) | 6 ungenutzt | |
-| Widgets, SaveGame, Data Assets | Nichts | |
-| Waffe, Gegner, Wellen | Nichts | Der gesamte Kern |
+| Data Assets | **Steht** | `CaliberData` mit 15 Feldern, dazu alle sechs Kaliber von 6mm bis .50 BMG. `ProjectileSpeed` und `ProjectileSize` am 14.09. ergänzt (Startwerte, ungetunt); `ProjectileColor` ist gefüllt, wird aber erst ab Schritt 39 benutzt. Ein Mesh-Feld für die Munitionskiste fehlt noch (Schritt 33). |
+| `BPI_Interactable` + `BP_TestInteractable` | Fertig | Fokus über `UpdateFocus`, Auslösen über `IA_Interact` |
+| `ItemData`, `UpgradeData`, `WaveData` | Nichts | Gerüste aus Schritt 13 noch offen |
+| Widgets | Nichts | |
+| `BP_Weapon` | **Läuft** | `ActiveCaliber`, `Fire(AimDir)` mit Feuerratensperre, Streuung und `ProjectilesPerShot`. Wird vom Character gespawnt und angehängt (`EquipWeapon`). |
+| `BP_Projectile` | **Läuft** | Parent `StaticMeshActor`, Mobility `Movable`, Tick-Bewegung, 3 s Lebensdauer. Kein Treffer, kein Schaden — das ist Schritt 20. |
+| Gegner, Wellen | Nichts | Der Rest des Kerns — hier geht es weiter |
 
-**Zwei Handverdrahtungen offen** (Details in `AGENTS.md`): Die GameInstance erfährt noch nicht, welches
-Eingabegerät aktiv ist.
+**Handverdrahtung:** Die beiden offenen Verbindungen zur GameInstance sind erledigt. Was noch offen
+ist, steht in `AGENTS.md` §4b — und ist per Toolset baubar, nicht mehr Handarbeit.
 
-**Getrimmte Werte.** Movement: MaxWalkSpeed 800, MaxAcceleration 8192, BrakingDeceleration 8192,
-GroundFriction 12, BrakingFriction 12. Dash: Distanz 650, Restgeschwindigkeit 1200, Kosten 34 von 100
+**Getrimmte Werte.** Movement: MaxWalkSpeed 800 (Basis, aus `GetPlayerStats`), GroundFriction 12,
+BrakingFriction 12 mit Faktor 2. Dash: Distanz 650, Restgeschwindigkeit 1200, Kosten 34 von 100
 Stamina, Regen 25/s nach 0,5 s Verzögerung, Mindestpause 0,25 s.
+
+**Beschleunigung ist an die Geschwindigkeit gekoppelt (14.09.).** `MaxAcceleration` und
+`BrakingDecelerationWalking` sind keine festen Zahlen mehr, sondern werden in `ApplyPlayerStats` als
+`MoveSpeed × AccelerationFactor` gesetzt (`AccelerationFactor` = 20 am Character). Vorher standen
+beide fest auf 8192 — bei `SpeedLevel` 20 und damit 2000 uu/s brauchte der Charakter 0,24 s bis auf
+Tempo statt 0,10 s wie bei der Basis. **Das Speed-Upgrade machte die Figur träger, je stärker sie
+wurde.** Über den Faktor bleibt die Zeit bis Vollgas jetzt konstant bei ~0,05 s, unabhängig vom
+Upgrade-Level. Der Faktor ist der Regler für „wie direkt fühlt sich ein Richtungswechsel an";
+`GroundFriction` ist der zweite.
 
 ## Zeitplan bis 25.09.
 
@@ -183,7 +197,7 @@ Gate-Termine sind die eigentlichen Fristen.
 |---|---|---|
 | Mi 09.09. | 1–4 | Der Charakter zielt auf den Cursor, Kamera bleibt ruhig |
 | Do 10.09. | 5–8 | Gamepad-Zielen, Geräteerkennung, Dash mit Cooldown, alle Input Actions |
-| Fr 11.09. | 9–12 | Stat-Struct, GameInstance, Charakter liest Werte, SaveGame läuft |
+| Fr 11.09. | 9–12 | Stat-Struct, GameInstance, Charakter liest Werte (12 gestrichen) |
 | Sa 12.09. | 13–16 | Data Assets, Interaktion — und die Waffe schießt zum ersten Mal |
 | So 13.09. | 17–20 | Magazin und Vorrat, Kaliberwechsel, Health, Schaden am Ziel |
 | Mo 14.09. | 21 | Gegner läuft auf dich zu und schlägt zu |
@@ -235,13 +249,15 @@ durchgeht, kommt der nächste.
 Am Ende läuft und zielt der Charakter mit beiden Eingabegeräten, dasht mit Stamina und zieht seine
 Werte aus der GameInstance, die einen Neustart übersteht.
 
-> **Phase 0 abgeschlossen (10.09.).** Schritte 1–14 stehen. Darüber hinaus gebaut: Stamina statt
-> Dash-Cooldown, Rückdrehen in Laufrichtung bei längerem Nicht-Zielen, Mausbewegungs-Erkennung über
-> die Cursorposition, weiches Körper-Nachdrehen über `bUseControllerDesiredRotation`.
+> **Phase 0 abgeschlossen (14.09.).** Schritte 1–14 stehen; Schritt 12 (SaveGame) ist gestrichen.
+> Darüber hinaus gebaut: Stamina statt Dash-Cooldown, Rückdrehen in Laufrichtung bei längerem
+> Nicht-Zielen, Mausbewegungs-Erkennung über die Cursorposition, weiches Körper-Nachdrehen über
+> `bUseControllerDesiredRotation`.
 >
-> **Offen aus Phase 0:** Schritt 11 (Character liest Stats aus der GameInstance) und Schritt 12
-> (SaveGame) — beides Cross-Blueprint und daher Handarbeit. Dazu die `Pressed`-Trigger an den
-> Input Actions.
+> Schritt 11 galt als „Cross-Blueprint, also Handarbeit". Das war ein Irrtum über die MCP-Toolsets,
+> kein Engine-Limit — siehe `AGENTS.md` §3. Er ist jetzt per Toolset gebaut.
+>
+> **Offen aus Phase 0:** nur noch die `Pressed`-Trigger an den Input Actions.
 
 ### 1. SpringArm auf Top-Down stellen
 
@@ -348,14 +364,25 @@ dem zuletzt benutzten Gerät.
 **Probe:** `SpeedLevel` in der GameInstance hochsetzen, Play drücken — der Charakter ist spürbar
 schneller.
 
-### 12. SaveGame
+### 12. ~~SaveGame~~ — **gestrichen (14.09.)**
 
-- `SG_Achachay` mit denselben Feldern wie der dauerhafte Teil der GameInstance
-- In `GI_Achachay`: `SaveProgress` und `LoadProgress`
-- `LoadProgress` beim Spielstart, `SaveProgress` immer beim Betreten des Safehouse
-- `RunMoney` gehört **nicht** hinein — das ist der Punkt der Tod-Regel
+Ersatzlos entfernt: `SG_Achachay`, `SaveProgress`, `LoadProgress` und die Aufrufe. Die Schrittnummer
+bleibt stehen, damit die Verweise im Zeitplan weiter passen.
 
-**Probe:** Geld ändern, speichern, Editor neu starten, Play — das Geld ist noch da.
+**Begründung:** Der Slice braucht keinen SaveGame. Die GameInstance überlebt Levelwechsel und Tod —
+mehr verlangt der Loop nicht. Persistenz über einen Neustart hinaus ist kein Teil dessen, was der
+Slice zeigen soll, und steht entsprechend auch nicht auf der „Nie streichen"-Liste.
+
+Der eigentliche Auslöser war aber praktischer Natur: `LoadProgress` hing an `Event Init` und
+überschrieb dort die Class Defaults, sobald irgendein Save existierte — auch ein leeres. Beim
+Entwickeln, wo ständig an Werten gedreht wird, macht das jede Probe wertlos. Am 14.09. hat genau
+das die Proben zu Schritt 11 und 12 verfälscht: Ein `SpeedLevel` oder `Money`, das in den Class
+Defaults gesetzt wurde, war bei `BeginPlay` längst wieder auf 0.
+
+**Falls es je zurückkommt:** Das erste und einzige Save enthielt null Properties. Entweder waren
+beim Speichern alle Werte identisch mit den Defaults (dann ist alles in Ordnung — Unreal überspringt
+solche Properties), oder den Variablen fehlte das **SaveGame**-Flag (dann speichert
+`SaveGameToSlot` grundsätzlich nichts). Das ist nie geklärt worden.
 
 ### 13. Data Assets anlegen
 
@@ -524,7 +551,7 @@ Ab hier ist es dein Spiel und nicht mehr irgendein Wave-Shooter.
 ### 31. Levelwechsel mit Zustand
 
 - Outside → Safehouse und zurück, alles Relevante über `GI_Achachay`
-- Beim Betreten des Safehouse `SaveProgress` aufrufen
+- Kein Speichern — Schritt 12 ist gestrichen, die GI trägt den Zustand allein
 
 **Probe:** Mehrfach hin- und herwechseln, ohne dass ein Wert verlorengeht.
 
@@ -618,11 +645,11 @@ Playtest anfassen.
 
 **Drei getrennte Maps heißt: jeder Zustand stirbt beim Wechsel.** Geld, Upgrades, freigeschaltete
 Kaliber, Munitionsvorrat, Wellenfortschritt — nichts davon überlebt ein `OpenLevel` von allein. Alles,
-was den Wechsel überstehen muss, gehört in `GI_Achachay`, alles was einen Neustart überstehen muss,
-zusätzlich ins SaveGame. Das ist der Grund, warum Phase 0 vor allem anderen steht.
+was den Wechsel überstehen muss, gehört in `GI_Achachay`. Einen **Neustart** übersteht bewusst
+nichts — Schritt 12 ist gestrichen. Das ist der Grund, warum Phase 0 vor allem anderen steht.
 
-**CommonUI ist schon aktiviert — und mit Gamepad-Support wird das zur Antwort.** In
-`DefaultGame.ini` steht bereits eine CommonUI-Konfiguration inklusive Fokus-Regeln. Da Gamepad
-vollwertig unterstützt wird, ist die Entscheidung leicht: konsequent damit bauen. Fokus-Navigation,
-Input-Routing zwischen UI und Spiel und die Umschaltung der Tastensymbole bekommst du damit
-geschenkt.
+**CommonUI ist NICHT aktiviert — hier stand vier Tage lang das Gegenteil.** In `DefaultGame.ini`
+liegt zwar eine CommonUI-Konfiguration inklusive Fokus-Regeln, aber das Plugin fehlt in
+`achachay.uproject`; die Einträge sind wirkungslose Template-Reste (siehe `AGENTS.md` §2). Wer das
+Widget-Kapitel angeht, entscheidet also zuerst: Plugin aktivieren und die geschenkte
+Fokus-Navigation mitnehmen, oder mit UMG bauen und die Gamepad-Navigation selbst verdrahten.
