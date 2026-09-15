@@ -550,7 +550,7 @@ entlang derselben Richtung, die `Fire` bekommt — sie lügt also nicht. Länge 
 Spielelement später Mesh oder Niagara-Beam. Hindernisse ignoriert er noch — sobald es Wände gibt,
 kann er auf denselben Trace wie das Projektil gesetzt werden.
 
-### 21. BP_EnemyBase ✔ Blueprint gebaut (15.09.), ungetestet bis NavMesh steht
+### 21. BP_EnemyBase ✔ (15.09., läuft — aber ohne Pathfinding)
 
 - Character mit Health-Komponente
 - Eigener AIController, auf Tick oder im Intervall `MoveTo` auf den Spieler
@@ -568,14 +568,29 @@ merkt sich den Spieler als `Target`. `UpdateAI` am Tick: außerhalb `AttackRange
 Die Distanz wird **2D** gemessen (`Distance2D`), damit ein Höhenunterschied zwischen Kapselmitte und
 Spieler den Angriff nicht blockiert.
 
-**Noch nicht getestet:** `SimpleMoveToActor` braucht ein NavMesh. Ohne `NavMeshBoundsVolume` im Level
-scheitert es still — der Gegner steht dann einfach. Das kommt mit Schritt 22.
+**`SimpleMoveToActor` funktioniert nicht — durch direkte Bewegung ersetzt (15.09.).** Der Gegner
+bewegte sich keinen Zentimeter. Gemessen statt vermutet: Tick lief, `AIController` besaß den Pawn,
+`Target` zeigte auf den Spieler, `MaxWalkSpeed` war 320, die Distanz wurde korrekt berechnet, und
+`LastMoveRequestTime` zeigte, dass der Aufruf tatsächlich jede Viertelsekunde stattfand — die
+Geschwindigkeit blieb trotzdem 0.
+
+Ausgeschlossen wurden dabei: fehlendes NavMesh (nach Editor-Neustart ist das Navigations-Log leer),
+Aufruf jeden Frame (auf 0,25 s gedrosselt), blockierende Kollision am Körper-Mesh (auf `NoCollision`)
+und Navigationsrelevanz des Mesh (`bCanEverAffectNavigation = false`).
+
+`UpdateAI` nutzt jetzt **`AddMovementInput`** in Richtung Ziel, flach in der XY-Ebene. Verifiziert per
+PIE: Gegner startet bei (1800, 1800), erreicht (70, 93), Spieler-Health fällt von 100 auf 0.
+
+**Preis dieser Lösung:** Die Gegner laufen **nicht um Deckungen herum**, sondern dagegen. Im offenen
+Areal fällt das kaum auf, bei den fünf Cover-Blöcken schon. Das NavMesh liegt fertig im Level und
+wird momentan nicht benutzt — bei Schritt 36 (Gegnertypen) sollte entweder `AI MoveTo` (latent, mit
+Fehlerausgang) probiert oder die Ursache weiter eingegrenzt werden.
 
 **Spieler hat jetzt auch Health (Nachtrag zu 19).** `BPC_Health` am `BP_PlayerCharacter`, gefüllt über
 `InitHealthFromStats` aus `MaxHealth`/`ArmorReduction` der `PlayerStats` — direkt nach
 `ApplyPlayerStats` im BeginPlay.
 
-### 22. L_Outside als Graybox
+### 22. L_Outside als Graybox ✔ (15.09.)
 
 - Grundfläche, ein paar Deckungen, eine klar erkennbare Safehouse-Tür
 - NavMeshBoundsVolume über das gesamte begehbare Areal
@@ -585,7 +600,23 @@ scheitert es still — der Gegner steht dann einfach. Das kommt mit Schritt 22.
 **Probe:** Von der entferntesten Ecke zur Tür laufen und die Zeit stoppen. Deutlich unter 15
 Sekunden.
 
-### 23. BP_WaveDirector
+**Gebaut am 15.09.** Der vorhandene Boden ist 8000×8000 uu (80×80 m), PlayerStart im Zentrum. Dazu:
+
+- **Vier Begrenzungsmauern** auf ±4000, Höhe 400 — Outliner-Ordner `Graybox/Walls`
+- ~~Fünf Deckungen~~ — **am 15.09. wieder entfernt.** Ohne Pathfinding blieben die Gegner daran
+  hängen, womit die Deckungen *schlechter* waren als keine: Der Spieler hätte einen sicheren Platz
+  gehabt. Kommen zurück, sobald die Schuld aus *Offene technische Schulden* beglichen ist.
+- **Türmarke** an der Südmauer bei (0, −3900), blau eingefärbt zum Wiedererkennen. Nur Optik; die
+  funktionierende Tür ist Schritt 28.
+- **`NavMeshBoundsVolume`** über die volle Fläche (−4000…4000, Z −400…800). `RecastNavMesh-Default`
+  ist dadurch automatisch entstanden, AgentRadius 35 / AgentHeight 144.
+- Zwei `BP_EnemyBase` und ein `BP_TestTarget` platziert — `Gameplay/Enemies`
+
+**Rechnung zum Rückweg:** Von der entferntesten Ecke zur Tür sind es rund 5700 uu. Bei der
+Basis-Bewegung von 800 uu/s sind das etwa **7 Sekunden** — die 15 aus dem Plan sind damit gut
+eingehalten, es bleibt sogar Luft, das Areal später zu vergrößern.
+
+### 23. BP_WaveDirector ✔ (15.09.)
 
 - Spawnpunkte als Actors im Level
 - Drei Wellen fest verdrahtet, Zusammensetzung noch nicht aus `WaveData`
@@ -593,6 +624,26 @@ Sekunden.
 - Danach Pause, dann nächste Welle
 
 **Probe:** Drei Wellen laufen hintereinander durch. Schneller Töten verkürzt die Welle sichtbar.
+
+**Gebaut am 15.09.** `BP_SpawnPoint` (leerer Actor mit Billboard) und `BP_WaveDirector` unter `Waves/`.
+Vier Spawnpunkte an den Arealrändern, Director im Zentrum.
+
+- `BeginPlay` sammelt alle `BP_SpawnPoint` per `GetAllActorsOfClass`, startet Welle 1
+- Gegnerzahl: `BaseCount + (Welle-1) × CountPerWave` — aktuell 3 + 2 pro Welle
+- Spawnpunkte werden reihum benutzt, mit ±200 uu Streuung, damit Gegner nicht ineinander stehen
+- **Wellenende per Timer alle 0,5 s**, nicht per Delegate: `CheckWaveOver` zählt lebende
+  `BP_EnemyBase`. Bei 0 → `WaveActive` aus, nach `NextWaveDelay` (3 s) die nächste Welle.
+
+**Warum Polling statt Event:** Ein Delegate pro Gegner an den Director zu binden ist über die
+Blueprint-DSL fragil. Alle 0,5 s eine Handvoll Actors zu zählen kostet nichts und hat keine
+Bindungsfehler-Klasse. Falls die Gegnerzahl je dreistellig wird, lohnt der Umbau auf Events.
+
+**Verifiziert per PIE:** Welle 1 startet, `CurrentWave` 1, `WaveActive` true, drei Gegner gespawnt,
+vier Spawnpunkte gefunden.
+
+**Noch ungetestet:** Der Übergang zur nächsten Welle — dafür müssen erst alle Gegner sterben. Das
+geht erst sinnvoll, wenn der Spielertod gebaut ist (Schritt 25), weil sonst der Spieler zuerst fällt.
+
 
 ### 24. Provisorisches HUD
 
@@ -705,6 +756,7 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 
 | # | Schritt | |
 |---|---|---|
+| 35a | **Echtes Pathfinding nachziehen** | **Pflicht, keine Option.** `BP_EnemyBase.UpdateAI` bewegt sich aktuell per `AddMovementInput` stur geradeaus und läuft in Deckungen hinein. Muss auf NavMesh-Pathing umgestellt werden, bevor Gegnertypen darauf aufbauen. |
 | 36 | Weitere Gegnertypen | Rusher, Schütze, Tank — abgeleitet von `BP_EnemyBase` |
 | 37 | Wellen aus WaveData | Zusammensetzung und Menge als Daten, nicht als Nodes. Zehn Wellen, nach oben wachsende Menge und Härte. |
 | 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Waffenbank im Safehouse |
@@ -732,6 +784,33 @@ Bewusst zuletzt — nichts davon verändert, ob der Loop trägt.
 
 ---
 
+## Offene technische Schulden
+
+Dinge, die **funktionieren, aber nicht fertig sind**. Sie stehen hier, damit sie nicht in
+Schritt-Notizen untergehen.
+
+### Gegner laufen ohne Pathfinding — muss vor der Abgabe echt werden
+
+`BP_EnemyBase.UpdateAI` nutzt `AddMovementInput` in Richtung Spieler. Das ist ein Platzhalter, weil
+`SimpleMoveToActor` am 15.09. trotz gebautem NavMesh keinerlei Bewegung erzeugte — Controller,
+`Target`, `MaxWalkSpeed` und der tatsächliche Aufruf waren alle nachweislich in Ordnung, die
+Geschwindigkeit blieb 0.
+
+**Folge:** Gegner laufen gegen Deckungen statt darum herum. Mit fünf Cover-Blöcken im Areal ist das
+sichtbar, und es entwertet die Deckungen als taktisches Element — der Spieler kann sich hinter einen
+Block stellen und die Gegner bleiben hängen.
+
+**Was zu tun ist**, in dieser Reihenfolge:
+
+1. `AI MoveTo` (latent, mit `OnFail`-Ausgang) statt `SimpleMoveToActor` — der liefert eine
+   Fehlerursache, statt still nichts zu tun
+2. Falls das auch scheitert: Projekteinstellungen → Navigation System → `SupportedAgents` prüfen. Die
+   Liste war am 15.09. leer.
+3. Notfalls eigener AIController mit `MoveToActor` statt der Blueprint-Helper-Bibliothek
+
+**Spätestens vor Schritt 36** erledigen — Gegnertypen wie Rusher oder Schütze bauen auf der Bewegung
+auf, und drei Gegnertypen auf kaputtem Pathfinding sind dreimal derselbe Fehler.
+
 ## Was den Slice kippen kann
 
 **Das große Kaliber macht die kleinen wertlos.** Kaliber sind deine gesamte Progression *und* deine
@@ -743,7 +822,8 @@ Zielsystem, Interaktion und jedes Menü anzufassen. Beide Wege von Anfang an mit
 Playtest anfassen.
 
 **Behavior Trees und EQS.** Für „lauf zum Spieler und schlag zu" reicht ein AIController mit
-`MoveTo`. BTs zahlen sich erst bei Deckung und Flanken aus.
+`MoveTo`. BTs zahlen sich erst bei Deckung und Flanken aus. **Aber:** `MoveTo` muss dafür erst einmal
+funktionieren — siehe *Offene technische Schulden*.
 
 **Den Boss vor der Wellen-Kurve bauen.** Ein Boss ist nur so gut wie das, was ihn vorbereitet.
 
