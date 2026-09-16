@@ -253,8 +253,8 @@ Gate-Termine sind die eigentlichen Fristen.
 | **Mi 16.09.** | **23–25** | **Gate 1** — drei Wellen, HUD, Tod. Macht der Fight Spaß? |
 | Do 17.09. | — | Reiner Tuning-Tag aus Gate 1. Keine neuen Funktionen. |
 | ~~Fr 18.09.~~ | ~~26–28~~ | **am 16.09. vorgezogen** — Geld, Rückweg-Fenster, Tür, dazu Gegnertypen aus 36 |
-| Sa 19.09. | 29–32 | Sofort-weiter, Tod-Regel, Levelwechsel mit Zustand, Run-Summary |
-| **So 20.09.** | **33–35** | **Gate 2** — Waffenbank, Werkbank, Ausgang. Der Loop läuft rund. |
+| Sa 19.09. | 29, 32 | Sofort-weiter, Run-Summary (30 und 31 am 16.09. miterledigt) |
+| **So 20.09.** | **Gate 2** | **33–35 am 16.09. gebaut** — jetzt nur noch prüfen: Der Loop läuft rund. |
 | Mo 21.09. | 36–38 | Echtes Pathfinding, Wellen aus `WaveData`, volle Kaliber-Leiter (Gegnertypen ✔) |
 | Di 22.09. | 39–42 | Projektil-Looks, Durchschlag, Heilung und Granate, Armor |
 | Mi 23.09. | 43–44 | Boss und Balancing der Wellenkurve |
@@ -877,7 +877,32 @@ Prompt am Safehouse-Würfel verschluckte.
 
 **Probe:** Die Zahlen stimmen mit dem gerade Gespielten überein.
 
-### 33. Waffenbank — Kaliber freischalten
+### 32a. `BP_InteractStation` — gemeinsame Basis der Stationen ✔ (16.09.)
+
+Alle drei Safehouse-Stationen brauchen dasselbe: ein Interface, einen Würfel, eine GameInstance-
+Referenz. Statt das dreimal zu bauen, gibt es jetzt eine Basisklasse unter `Core/`.
+
+**Warum als Duplikat entstanden:** Ein Blueprint-Interface lässt sich per MCP **nicht** hinzufügen —
+`ImplementedInterfaces` ist über `ObjectTools` nicht schreibbar. `BP_InteractStation` ist deshalb
+eine **Kopie von `BP_SafehouseDoor`** (das die Schnittstelle schon hatte), von der die Extraktions-
+Logik entfernt wurde. Kinder erben die Schnittstelle mit.
+
+**Wie Kinder ihr Verhalten einhängen:** Die Basis fängt `EventInteract` ab und ruft `OnInteract` —
+eine leere Funktion ohne Rückgabewert. Weil sie keine Ausgänge hat, behandelt Unreal sie als
+*event-shape function*: Kinder überschreiben sie **nicht als Funktionsgraph**, sondern als
+Event-Node (`add_event`, nicht `add_function_graph` — letzteres wird abgewiesen).
+
+Dazu `Label`, `MeshScale`, `GI` und ein `LabelText` (TextRender). `ApplyLook` läuft im
+**Konstruktionsskript**, damit Größe und Beschriftung schon im Editor stimmen und nicht erst bei
+BeginPlay.
+
+**Grenze, die dabei auffiel:** `SetRelativeLocation`/`SetRelativeRotation` auf eine
+SCS-Komponente wirken im Konstruktionsskript **nicht** — bereits platzierte Instanzen haben eigene
+serialisierte Transformwerte, die danach wieder gewinnen. `SetRelativeScale3D`, `SetWorldSize` und
+`SetText` greifen dagegen. Transform-Änderungen gehören also ans Komponenten-Template **vor** dem
+ersten Platzieren.
+
+### 33. Waffenbank — Kaliber freischalten ✔ (16.09.)
 
 - Actor mit `BPI_Interactable`, referenziert ein `CaliberData`
 - Interagieren schaltet das Kaliber **einmalig** frei und zieht `UnlockPrice` ab
@@ -887,18 +912,60 @@ Prompt am Safehouse-Würfel verschluckte.
 **Probe:** Freischalten zieht Geld ab, das Kaliber taucht im Q-Kreis auf und die Station ist danach
 erledigt.
 
-### 34. Werkbank
+**Gebaut am 16.09.** `BP_WeaponBench` unter `Safehouse/`, Kind von `BP_InteractStation`. Eine
+Instanz pro Kaliber, das `Caliber`-Feld zeigt auf das `CaliberData`. `TryUnlock` prüft
+`IsCaliberUnlocked`, ruft `GI.SpendMoney(UnlockPrice)` und bei Erfolg `GI.UnlockCaliber`.
+
+`CaliberData` hat dafür ein **`UnlockPrice`** bekommen, gesetzt nach der Preistabelle: 6mm 0,
+9mm 60, .45 ACP 120, 7.62×39 200, .44 Magnum 300, .50 BMG 500.
+
+**`UnlockedCalibers` steht wieder auf nur `6mm`** — die Testdaten (6mm, 9mm, .50 BMG) aus Schritt 18
+sind raus, jetzt wo man sie regulär kaufen kann.
+
+**Offen:** Die drei sichtbaren Zustände. Momentan passiert bei „zu teuer" und „schon gekauft"
+einfach nichts. Gehört zum HUD-Pass.
+
+### 34. Werkbank ✔ (16.09.)
 
 - Interagierbarer Actor für Speed, Armor und Health
 - Preis steigt pro Stufe, Level landen in der GameInstance
 
 **Probe:** Ein Upgrade kaufen und den Unterschied draußen sofort spüren.
 
-### 35. Ausgangstür im Safehouse
+**Gebaut am 16.09.** `BP_Workbench`, Kind von `BP_InteractStation`, **eine Instanz pro Upgrade**
+(`UpgradeId` = `Speed` / `Armor` / `Health`). Das folgt derselben Regel wie die Waffenbank:
+kein Shop-Bildschirm, wer bezahlen kann, kauft.
+
+Preis: `BasePrice + Stufe × PriceStep` = **80, 140, 200, 260, 320**, `MaxLevel` 5. Bei rund 1 $ pro
+Kill und 150–250 $ aus einem guten Run ist das früh eine Stufe pro Run, später mehrere Runs.
+
+Die GameInstance hat dafür drei neue Funktionen: `SpendMoney(Amount) → Paid`,
+`GetUpgradeLevel(UpgradeId)` und `RaiseUpgradeLevel(UpgradeId)`. Damit liegt die Geldlogik an
+**einer** Stelle statt in jeder Station.
+
+**Der Kauf wirkt sofort.** `BP_PlayerCharacter.RefreshStats` holt die Stats neu aus der GI und ruft
+`ApplyPlayerStats` + `InitHealthFromStats` — dieselbe Kette wie in `BeginPlay`. Ohne das würde man
+den Unterschied erst nach dem nächsten Levelwechsel merken, und genau daran hängt Gate 2.
+
+### 35. Ausgangstür im Safehouse ✔ (16.09.)
 
 - Interagierbar, startet einen neuen Run in `L_Outside` bei Welle 1
 
 **Probe:** Der komplette Kreis läuft: raus, kämpfen, rein, kaufen, wieder raus.
+
+**Gebaut am 16.09.** `BP_ExitDoor`, Kind von `BP_InteractStation`, bei (1400, 0). `LeaveSafehouse`
+bucht vorsichtshalber `BankRunMoney` (falls noch Run-Geld herumliegt) und lädt `L_Outside`.
+
+**Aufbau des Safehouse (16.09.):** Spieler startet bei (0, 0). Tür nach Osten bei (1400, 0), die
+drei Werkbänke westlich bei x = −1400 (y = −500 / 0 / +500), die fünf Kaliber-Stationen südlich bei
+y = −1400 (x = −1000 bis +1000). Abstand 500 uu, damit bei `InteractRange` 250 immer nur eine
+Station im Fokus ist.
+
+**Stationsnamen stehen im HUD, nicht im Raum.** `WBP_HUD.GetPromptText` castet das fokussierte
+Interactable auf `BP_InteractStation` und hängt dessen `Label` an den Prompt — aus „Interact" wird
+„Interact   .50 BMG  500". Alles andere bleibt beim nackten „Interact" wie festgelegt. Der
+3D-`LabelText` über der Station bleibt zusätzlich drin, ist aus sehr steilem Winkel aber kaum
+lesbar.
 
 > ### ⛳ Gate 2 — nach Schritt 35 (So 20.09.)
 > **Willst du nach dem Einkauf sofort wieder raus?**
