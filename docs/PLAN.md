@@ -252,10 +252,10 @@ Gate-Termine sind die eigentlichen Fristen.
 | Di 15.09. | 22 | L_Outside als Graybox mit NavMesh, Rückweg unter 15 s geprüft |
 | **Mi 16.09.** | **23–25** | **Gate 1** — drei Wellen, HUD, Tod. Macht der Fight Spaß? |
 | Do 17.09. | — | Reiner Tuning-Tag aus Gate 1. Keine neuen Funktionen. |
-| Fr 18.09. | 26–28 | Geld, Rückweg-Fenster mit Countdown, Safehouse-Tür |
+| ~~Fr 18.09.~~ | ~~26–28~~ | **am 16.09. vorgezogen** — Geld, Rückweg-Fenster, Tür, dazu Gegnertypen aus 36 |
 | Sa 19.09. | 29–32 | Sofort-weiter, Tod-Regel, Levelwechsel mit Zustand, Run-Summary |
 | **So 20.09.** | **33–35** | **Gate 2** — Waffenbank, Werkbank, Ausgang. Der Loop läuft rund. |
-| Mo 21.09. | 36–38 | Gegnertypen, Wellen aus WaveData, volle Kaliber-Leiter |
+| Mo 21.09. | 36–38 | Echtes Pathfinding, Wellen aus `WaveData`, volle Kaliber-Leiter (Gegnertypen ✔) |
 | Di 22.09. | 39–42 | Projektil-Looks, Durchschlag, Heilung und Granate, Armor |
 | Mi 23.09. | 43–44 | Boss und Balancing der Wellenkurve |
 | Do 24.09. | 45–48 | Menü-Level, Bett, Musik-States, Pause- und Tod-Screen |
@@ -536,7 +536,22 @@ Durchschlag (`Penetration`) ist noch nicht ausgewertet, das ist Phase 3.
 
 Der Owner (der Spieler) steht in `ActorsToIgnore`, damit man sich nicht selbst trifft.
 
-**Testziel:** `BP_TestTarget` unter `Enemies/` — Würfel-Mesh, `BPC_Health` mit 100 HP, `OnDeath`
+**Durchschlag vorgezogen (16.09., eigentlich Schritt 40).** Ich hatte für später plädiert, weil die
+Wellen noch keine Gegnerreihen liefern — im Spiel stellte sich heraus, dass sie es doch tun: Alle
+Gegner laufen direkt auf den Spieler zu und bilden dadurch von selbst eine Kolonne.
+
+`BP_Projectile` hat jetzt `IgnoredActors`. Beim Spawn kommt der Owner hinein, bei jedem Treffer der
+getroffene Gegner. Die Liste geht als `ActorsToIgnore` in den Trace — dadurch wird derselbe Gegner
+nicht im nächsten Frame erneut getroffen, was `.50 BMG` sonst fünfmal auf ein Ziel statt einmal auf
+fünf Ziele feuern ließe.
+
+`Penetration` aus dem Kaliber ist das verbleibende Budget und wird pro Treffer um 1 gesenkt; bei
+unter 0 zerstört sich das Projektil. 6mm (0) trifft damit genau einen Gegner, `.50 BMG` (5) sechs.
+
+**Wände stoppen immer**, unabhängig vom Restbudget: Ein Treffer ohne `BPC_Health` zerstört das
+Projektil. Sonst würde Durchschlag die Deckung entwerten, statt Gegnerreihen zu belohnen.
+
+****Testziel:** `BP_TestTarget` unter `Enemies/` — Würfel-Mesh, `BPC_Health` mit 100 HP, `OnDeath`
 zerstört den Actor. Vorstufe zu `BP_EnemyBase` (Schritt 21).
 
 **Projektilwerte am 15.09. auf sichtbare Größen getunt** (vorher 7000–13000 uu/s bei Größe 0,1–0,3 —
@@ -645,7 +660,7 @@ vier Spawnpunkte gefunden.
 geht erst sinnvoll, wenn der Spielertod gebaut ist (Schritt 25), weil sonst der Spieler zuerst fällt.
 
 
-### 24. Provisorisches HUD
+### 24. Provisorisches HUD ✔ (16.09.)
 
 - Health, Stamina, aktuelle Welle, Geld
 - **Alle freigeschalteten Kaliber mit Magazinstand**, das aktive hervorgehoben
@@ -654,11 +669,54 @@ geht erst sinnvoll, wenn der Spielertod gebaut ist (Schritt 25), weil sonst der 
 
 **Probe:** Alle Werte aktualisieren sich live, der Wechsel verschiebt die Hervorhebung.
 
-### 25. Spielertod
+**Gebaut am 16.09.** `WBP_HUD` unter `UI/` mit sechs TextBlocks in einer Vertical Box. `RefreshHUD`
+läuft am Widget-Tick und füllt Health, Stamina, Welle, Geld, Magazin und Kaliberleiste. Die
+Referenzen auf Spieler, GameInstance und WaveDirector werden einmal im `Construct` geholt, nicht pro
+Frame gesucht. Eingeblendet wird in **`PC_Outside`**, nicht im Character — so hängt das HUD am Ort
+und erscheint im Safehouse nicht.
+
+**Geld steht als zwei Zahlen da** (`$ 120   RUN + 45`): gesichert und im Run erkämpft. Eine einzelne
+Zahl würde den Unterschied verstecken, auf dem das Rückweg-Fenster beruht.
+
+**HP-Leisten über Gegnern (16.09.).** `WBP_EnemyHealth` mit einer ProgressBar, eingehängt als
+`WidgetComponent` an `BP_EnemyBase` (`Space: Screen`, `DrawSize` 70×8, 105 uu über der Kapselmitte).
+`BindHealthBar` reicht im BeginPlay die Health-Komponente des jeweiligen Gegners durch; der Tick des
+Widgets setzt den Prozentwert.
+
+`Space: Screen` statt `World`, damit die Leiste sich zur Kamera dreht und ihre Pixelgröße behält.
+Die ProgressBar ist im Canvas auf Füllen verankert — sonst bestimmt ihre feste Slot-Größe die
+Darstellung und `DrawSize` bleibt wirkungslos.
+
+**Offen: Zelda-artiger Kreis für Health und Stamina** neben dem Charakter. Braucht ein radiales
+Material oder eine Kreistextur — Gestaltungsfrage, gehört zum Art-Pass.
+
+**Werkzeug-Grenze, die dabei klar wurde:** Neue Widgets lassen sich per MCP **nicht** in den
+Widget-Tree einfügen. Bestehende dagegen schon — über `WidgetTree.<Name>` und deren Slots sind
+Größe, Anker und Eigenschaften änderbar. Arbeitsteilung also: Element von Hand hineinziehen und
+benennen, Rest per Werkzeug.
+
+### 25. Spielertod ✔ (16.09.)
 
 - Health auf 0 → Eingabe sperren, kurz warten, Karte neu laden
 
 **Probe:** Sterben führt zuverlässig zum Neustart, ohne hängenzubleiben.
+
+**Gebaut am 16.09.** `BPC_Health.OnDeath` am Spieler ist an `HandleDeath` gebunden: `IsDead`-Flag
+setzen (verhindert Mehrfachauslösung), `DisableInput`, `StopMovementImmediately`, dann Timer über
+`RestartDelay` (2 s) auf `RestartRun`. Das lädt per `OpenLevel(GetCurrentLevelName(true))` dieselbe
+Karte neu — das `true` streift das PIE-Präfix ab, sonst landet man in der Default-Map.
+
+**Tod-Regel gleich mitgebaut (16.09.).** Statt dieselbe Karte neu zu laden führt der Tod **ins
+Safehouse** (`OpenLevel("L_Safehouse")`, wie die Debug-Hotkeys im Menü). Davor ruft er
+`GI_Achachay.ClearRunState`: `RunMoney`, `HealCount` und `GrenadeCount` auf 0. `Money`,
+Upgrade-Level und `UnlockedCalibers` bleiben.
+
+Damit ist ein Teil von **Schritt 30** vorgezogen — der Rest dort (Run-Summary-Anbindung) bleibt offen.
+
+**Kurz aufgekommen und verworfen:** Ob das erkämpfte Geld den Tod überleben soll. Entschieden am
+16.09.: **nein.** Sonst verliert das 15-Sekunden-Rückwegfenster seinen Zweck — wenn Sterben nichts
+kostet, gibt es keinen Grund zu extrahieren, und Positionswahl, Rückweg und das Speed-Upgrade als
+Extraktionsreichweite hängen alle daran.
 
 > ### ⛳ Gate 1 — nach Schritt 25 (Mi 16.09.)
 > **Macht der Fight für sich genommen Spaß?**
@@ -672,25 +730,124 @@ geht erst sinnvoll, wenn der Spielertod gebaut ist (Schritt 25), weil sonst der 
 
 Ab hier ist es dein Spiel und nicht mehr irgendein Wave-Shooter.
 
-### 26. Geld
+### 26. Geld ✔ teilweise (16.09.)
 
 - Drop pro Kill und Bonus pro überstandener Welle, aufaddiert auf `RunMoney`
 
 **Probe:** Kills erhöhen die Anzeige im HUD.
 
-### 27. Rückweg-Fenster
+**Gebaut am 16.09.** `BP_EnemyBase.KillReward` (1) wird beim Tod über `GI.AddRunMoney` auf `RunMoney`
+gebucht. Die Auszahlung sitzt in `PayoutAndDie` **vor** dem Zerstören des Actors, sonst geht sie
+verloren.
+
+**Offen:** Der **Bonus pro überstandener Welle** fehlt noch — gehört zum WaveDirector, sobald das
+Wellenende auch ein Ereignis auslöst (Schritt 27).
+
+### 27. Rückweg-Fenster ✔ (16.09.)
 
 - Nach dem letzten Kill 15 Sekunden Countdown, danach startet die nächste Welle
 - Countdown im HUD, dazu ein Wegweiser zur Tür, solange sie außerhalb des Bildes liegt
 
 **Probe:** Countdown läuft sichtbar, die nächste Welle startet exakt bei null.
 
-### 28. Safehouse-Tür als Ausgang
+**Gebaut am 16.09. — mit 10 statt 15 Sekunden.** `CheckWaveOver` setzt bei 0 lebenden Gegnern
+`ExtractionOpen` und merkt sich `WindowEndTime`; nach `ExtractWindow` (10 s) läuft `StartWave` und
+setzt `ExtractionOpen` wieder zurück. `GetRemainingWindow` liefert die Restzeit geklemmt auf 0,
+`T_ExtractTimer` im HUD zeigt sie. Die Tür extrahiert nur, solange das Fenster offen ist, und zahlt
+`BonusPerWave` (10) × geschaffte Welle zusätzlich aus.
+
+**15 → 10 Sekunden:** Neun Fenster à 15 s sind über zwei Minuten Stehzeit pro Run (siehe oben). 10 s
+reichen für den Rückweg, wenn man beim letzten Kill schon in Türnähe steht — und genau diese
+Positionswahl soll das Fenster belohnen.
+
+**Der Wegweiser zur Tür fehlt noch.**
+
+### 27a. Wellenskalierung und Gegnertypen ✔ (16.09.)
+
+Anlass: Welle 12 war ohne ein einziges Upgrade erreichbar. Die Basisgegner (320 uu/s, Deckel bei
+620) holen den Spieler (800 uu/s) **nie** ein — es dauerte nur immer länger, gefährlich wurde es nie.
+Ein Wave-Shooter, bei dem Zeit die einzige Ressource ist, hat kein Upgrade-Bedürfnis.
+
+**Skalierung pro Welle** (`step` = Welle − 1), im `BP_WaveDirector`:
+
+| Größe | Formel | Welle 1 | Welle 10 | Welle 20 |
+|---|---|---|---|---|
+| Gegnerzahl | `3 + 2·step` | 3 | 21 | 41 |
+| Bonus-HP | `18·step` | 0 | +162 | +342 |
+| Bonus-Tempo | `14·step` | 0 | +126 | +266 |
+
+Schaden skaliert **bewusst nicht** — sonst wird der Tod zum Sprung statt zur Kurve.
+
+**Pro Typ skaliert es unterschiedlich.** `BP_EnemyBase` hat dafür `HealthScaleMul` und
+`SpeedScaleMul` bekommen; `ApplyWaveScaling` multipliziert die Wellenboni damit. Dazu `BaseHealth`
+(statt des Komponenten-Defaults) und `BodyScale`, beide in `BeginPlay` angewandt — so unterscheiden
+sich die Typen **nur über Default-Werte** und brauchen keine überschriebenen Funktionen. Das ist
+auch die werkzeugfreundlichste Form: Kindklasse anlegen, Zahlen setzen, fertig.
+
+| | Läufer (`BP_EnemyBase`) | Schütze (`BP_EnemyShooter`) | Rusher (`BP_EnemyRusher`) |
+|---|---|---|---|
+| ab Welle | 1 | **5** | **10** |
+| Anzahl | Rest der Welle | `(W−5)/2 + 1`, max ⅓ | `(W−10)/2 + 1`, max ¼ |
+| Basis-HP | 60 | 45 | 30 |
+| HP-Faktor | ×1,0 | ×0,7 | ×0,45 |
+| Basis-Tempo | 320 | 210 | 500 |
+| Tempo-Faktor | ×1,0 | ×0,5 | **×2,5** |
+| Tempo-Deckel | 620 | 340 | **1120** |
+| Reichweite | 150 | **1100** | 150 |
+| Schaden | 10 / 1,0 s | 8 / 2,0 s | 14 / 0,8 s |
+| Geld | 1 | 3 | 4 |
+| Körper | 0,7 × 0,7 × 1,76 | schmal und hoch | klein und gedrungen |
+
+**Der Schütze** bricht die Kite-Strategie: Er muss dich nicht einholen, er trifft dich beim
+Weglaufen. Sein Projektil ist mit 1200 uu/s langsam genug zum Ausweichen — Druck, kein Automatismus.
+
+**Der Rusher** bricht den Tempovorteil. Er startet bei 500 und wächst mit ×2,5 am schnellsten:
+
+| Welle | Rusher-Tempo | Spieler (Speed 0) | Anzahl |
+|---|---|---|---|
+| 10 | 815 | 800 | 1 |
+| 15 | 990 | 800 | 3 |
+| 20 | 1120 (Deckel) | 800 | 6 |
+
+Ab Welle 10 ist er **schneller als der ungeupgradete Spieler** — genau der Punkt, an dem Upgraden
+Pflicht wird. Speed kostet 60 uu/s pro Stufe, holt den Deckel also bei Stufe 5 (1100) fast ein.
+Speed allein reicht aber nicht: sechs Rusher à 184 HP sind bei 9mm (96 DPS) elf Sekunden Feuer, in
+denen sie 105 DPS austeilen. Es braucht **Schaden oder Health dazu** — was gewollt ist.
+
+**Bleibt es spielbar?** Die Bremsen sind eingebaut: Beide Sondertypen sind auf einen Anteil der
+Welle gedeckelt (⅓ und ¼), haben deutlich weniger HP als der Läufer und skalieren ihre HP
+schwächer. Der Rusher stirbt auch spät in einer 9mm-Sekunde. Erwartete Wand ohne Upgrades:
+**Welle 13–15** statt vorher offen — dort, wo vorher der Leerlauf anfing.
+
+**Kein Eigenbeschuss.** Gegnerprojektile setzen `FromEnemy` und tragen andere Gegner in
+`IgnoredActors` ein, statt sie zu treffen — sonst hätte sich eine Welle mit genug Schützen selbst
+ausgelöscht. Der Schütze ignoriert von Anfang an sich selbst.
+
+**Per PIE verifiziert (16.09.).** Welle 1 spawnt exakt drei `BP_EnemyBase`, keine Sondertypen. Mit
+testweise auf 1 gesetzten Startwellen und `BaseCount` 8: genau 1 Rusher + 1 Schütze + 6 Läufer.
+Schützenprojektil geprüft: `FromEnemy` true, Schaden 8, Tempo 1200, eigener Schütze in
+`IgnoredActors`; Spieler-HP fällt auf 0, während alle acht Gegner im Dauerbeschuss am Leben bleiben.
+Testwerte danach zurückgesetzt.
+
+### 28. Safehouse-Tür als Ausgang ✔ teilweise (16.09.)
 
 - Trigger an der Tür, nur während des Fensters aktiv
 - Durchlaufen beendet den Run: `RunMoney` wandert auf `Money`, dann Levelwechsel
 
 **Probe:** Rechtzeitig durch die Tür landet im Safehouse, mit dem Geld auf dem Konto.
+
+**Gebaut am 16.09.** `BP_SafehouseDoor` unter `Safehouse/`, platziert bei (0, −3880) an der Südmauer,
+wo vorher nur die Deko-Marke stand. Implementiert `BPI_Interactable`; `EventInteract` ruft
+`EnterSafehouse`: `GI.BankRunMoney` bucht `RunMoney` auf `Money`, dann `OpenLevel("L_Safehouse")`.
+
+**Abweichung vom Plan:** Kein Trigger zum Durchlaufen, sondern **Interaktion mit `E`** — das nutzt das
+vorhandene `BPI_Interactable` statt einer zweiten Mechanik. Und die Tür ist **immer** aktiv, nicht nur
+während des Rückwegfensters; das Fenster gibt es noch nicht (Schritt 27).
+
+**Interact-Prompt im HUD (16.09.).** `T_Interact` zeigt „Interact", solange `HasFocus` am Charakter
+wahr ist. Hängt am Interface, gilt also für jedes Interactable ohne Zutun des einzelnen Actors. Das
+HUD wird inzwischen in **`PC_Outside` und `PC_Safehouse`** eingeblendet — anfangs nur draußen, was den
+Prompt am Safehouse-Würfel verschluckte.
 
 ### 29. Sofort weitermachen
 
@@ -761,7 +918,7 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 | 37 | Wellen aus WaveData | Zusammensetzung und Menge als Daten, nicht als Nodes. Zehn Wellen, nach oben wachsende Menge und Härte. |
 | 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Waffenbank im Safehouse |
 | 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
-| 40 | Durchschlag | Große Kaliber treffen mehrere Gegner in einer Linie |
+| ~~40~~ | ~~Durchschlag~~ | **Vorgezogen am 16.09.** Siehe Notiz unter Schritt 20. |
 | 41 | Heilung, Granate, Vorratsregal | Eigene Tasten, pro Run gekauft, bei Benutzung und bei Tod weg |
 | 42 | Armor wirksam machen | Schadensreduktion in der Health-Komponente scharf schalten |
 | 43 | Boss | Am Ende von Welle 10, erstmal schlicht sehr viel HP |
@@ -836,8 +993,15 @@ Kaliber, Munitionsvorrat, Wellenfortschritt — nichts davon überlebt ein `Open
 was den Wechsel überstehen muss, gehört in `GI_Achachay`. Einen **Neustart** übersteht bewusst
 nichts — Schritt 12 ist gestrichen. Das ist der Grund, warum Phase 0 vor allem anderen steht.
 
-**CommonUI ist NICHT aktiviert — hier stand vier Tage lang das Gegenteil.** In `DefaultGame.ini`
-liegt zwar eine CommonUI-Konfiguration inklusive Fokus-Regeln, aber das Plugin fehlt in
-`achachay.uproject`; die Einträge sind wirkungslose Template-Reste (siehe `AGENTS.md` §2). Wer das
-Widget-Kapitel angeht, entscheidet also zuerst: Plugin aktivieren und die geschenkte
-Fokus-Navigation mitnehmen, oder mit UMG bauen und die Gamepad-Navigation selbst verdrahten.
+**UI wird mit reinem UMG gebaut — entschieden am 16.09.** CommonUI wird **nicht** aktiviert. Die
+wirkungslosen Template-Reste in `DefaultGame.ini` (Konfiguration ohne Plugin, siehe `AGENTS.md` §2)
+sind am 16.09. entfernt worden, damit die Verwirrung nicht ein zweites Mal entsteht.
+
+**Warum nicht CommonUI:** Der Gewinn liegt bei Input-Routing zwischen Gamepad und Maus,
+Widget-Stapeln mit Zurück-Verhalten und plattformabhängigen Button-Glyphen. Für ein HUD, das nur
+Zahlen anzeigt und keinen Fokus kennt, bringt das nichts. Für die Menüs wäre es real, aber es sind
+genau drei Bildschirme (Haupt, Pause, Tod) — bei der Größe kostet das Aufsetzen des Frameworks mehr
+Zeit, als es bei der Fokus-Navigation spart. Neun Tage vor Abgabe ist ein neues Framework genau die
+Art Arbeit, vor der der Abschnitt *Was den Slice kippen kann* warnt.
+
+Nachrüsten bleibt möglich: CommonUI ersetzt UMG nicht, es baut darauf auf.
