@@ -618,9 +618,10 @@ Sekunden.
 **Gebaut am 15.09.** Der vorhandene Boden ist 8000×8000 uu (80×80 m), PlayerStart im Zentrum. Dazu:
 
 - **Vier Begrenzungsmauern** auf ±4000, Höhe 400 — Outliner-Ordner `Graybox/Walls`
-- ~~Fünf Deckungen~~ — **am 15.09. wieder entfernt.** Ohne Pathfinding blieben die Gegner daran
-  hängen, womit die Deckungen *schlechter* waren als keine: Der Spieler hätte einen sicheren Platz
-  gehabt. Kommen zurück, sobald die Schuld aus *Offene technische Schulden* beglichen ist.
+- **Fünf Deckungen** — am 15.09. entfernt (ohne Pathfinding blieben die Gegner daran hängen, womit
+  die Deckungen *schlechter* waren als keine), **am 17.09. wieder gesetzt**, nachdem `AI MoveTo`
+  läuft. Würfel 6×2×2 bzw. 5×2×2 bei (1200, 900), (−1300, 1400), (−1600, −1200),
+  (1500, −1500) und (300, −2200) — Outliner-Ordner `Graybox/Cover`.
 - **Türmarke** an der Südmauer bei (0, −3900), blau eingefärbt zum Wiedererkennen. Nur Optik; die
   funktionierende Tür ist Schritt 28.
 - **`NavMeshBoundsVolume`** über die volle Fläche (−4000…4000, Z −400…800). `RecastNavMesh-Default`
@@ -1016,8 +1017,8 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 
 | # | Schritt | |
 |---|---|---|
-| 35a | **Echtes Pathfinding nachziehen** | **Pflicht, keine Option.** `BP_EnemyBase.UpdateAI` bewegt sich aktuell per `AddMovementInput` stur geradeaus und läuft in Deckungen hinein. Muss auf NavMesh-Pathing umgestellt werden, bevor Gegnertypen darauf aufbauen. |
-| 36 | Weitere Gegnertypen | Rusher, Schütze, Tank — abgeleitet von `BP_EnemyBase` |
+| ~~35a~~ | ~~Echtes Pathfinding nachziehen~~ | **Erledigt am 17.09.** `AI MoveTo` auf dem NavMesh, Deckungen wieder drin. Siehe technische Schulden. |
+| 36 | Weitere Gegnertypen | Schütze und Rusher **am 16.09. gebaut**, Tank fehlt noch |
 | 37 | Wellen aus WaveData | Zusammensetzung und Menge als Daten, nicht als Nodes. Zehn Wellen, nach oben wachsende Menge und Härte. |
 | 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Waffenbank im Safehouse |
 | 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
@@ -1049,27 +1050,39 @@ Bewusst zuletzt — nichts davon verändert, ob der Loop trägt.
 Dinge, die **funktionieren, aber nicht fertig sind**. Sie stehen hier, damit sie nicht in
 Schritt-Notizen untergehen.
 
-### Gegner laufen ohne Pathfinding — muss vor der Abgabe echt werden
+### ~~Gegner laufen ohne Pathfinding~~ — erledigt am 17.09.
 
-`BP_EnemyBase.UpdateAI` nutzt `AddMovementInput` in Richtung Spieler. Das ist ein Platzhalter, weil
-`SimpleMoveToActor` am 15.09. trotz gebautem NavMesh keinerlei Bewegung erzeugte — Controller,
-`Target`, `MaxWalkSpeed` und der tatsächliche Aufruf waren alle nachweislich in Ordnung, die
-Geschwindigkeit blieb 0.
+`BP_EnemyBase` bewegt sich jetzt über **`AI MoveTo`** auf dem NavMesh. Die Deckungen sind wieder
+drin, die Gegner laufen darum herum.
 
-**Folge:** Gegner laufen gegen Deckungen statt darum herum. Mit fünf Cover-Blöcken im Areal ist das
-sichtbar, und es entwertet die Deckungen als taktisches Element — der Spieler kann sich hinter einen
-Block stellen und die Gegner bleiben hängen.
+**Was wirklich kaputt war:** Nicht der Aufruf, nicht der Controller, nicht das NavMesh. Der
+**Agent des `RecastNavMesh` war zu klein**: `AgentHeight` 144 bei einer Gegner-Kapsel von 176
+(Radius 34, Halbhöhe 88). Die Navigation fand für den angefragten Agenten keine passenden Nav-Daten
+und fiel auf die ebenfalls registrierte **`AbstractNavData`** zurück — und deren `FindPath` ist ein
+Stub, der *stillschweigend nichts tut*. Genau das erklärt das Verhalten vom 15.09.:
+`SimpleMoveToActor` meldete keinen Fehler und bewegte trotzdem nichts.
 
-**Was zu tun ist**, in dieser Reihenfolge:
+**Behoben** durch `AgentRadius` 42 und `AgentHeight` 192 am `RecastNavMesh-Default` in `L_Outside`.
 
-1. `AI MoveTo` (latent, mit `OnFail`-Ausgang) statt `SimpleMoveToActor` — der liefert eine
-   Fehlerursache, statt still nichts zu tun
-2. Falls das auch scheitert: Projekteinstellungen → Navigation System → `SupportedAgents` prüfen. Die
-   Liste war am 15.09. leer.
-3. Notfalls eigener AIController mit `MoveToActor` statt der Blueprint-Helper-Bibliothek
+**Wie es gefunden wurde:** `AI MoveTo` statt `SimpleMoveToActor` — der hat einen `OnFail`-Ausgang.
+Damit war binnen einer PIE-Runde klar, dass der Aufruf scheitert und nicht etwa ins Leere läuft.
+Danach `LogNavigation` auf `VeryVerbose`: dort stand, dass `RecastNavMesh-Default` **und**
+`AbstractNavData-Default` beide erfolgreich registriert waren — das war der entscheidende Hinweis.
 
-**Spätestens vor Schritt 36** erledigen — Gegnertypen wie Rusher oder Schütze bauen auf der Bewegung
-auf, und drei Gegnertypen auf kaputtem Pathfinding sind dreimal derselbe Fehler.
+**Merksatz:** `SimpleMoveToActor` verschweigt Fehler. Für alles, was nicht auf Anhieb läuft,
+gehört `AI MoveTo` in den Graphen, bis es steht.
+
+**Noch offen, aber unkritisch:** Der Fix sitzt an der Actor-Instanz im Level, nicht in
+`DefaultEngine.ini`. Wird das NavMesh je neu erzeugt, ist er weg. Sauberer wäre ein expliziter
+`SupportedAgents`-Eintrag in der Config — der braucht aber einen Editor-Neustart und hätte den
+gerade funktionierenden Zustand blind verändert. Beim nächsten ohnehin fälligen Neustart nachziehen.
+
+**Bauliche Folge:** `AI MoveTo` ist ein **latenter** Node und darf deshalb nicht in einem
+Funktionsgraphen stehen. `UpdateAI` gibt jetzt ein `WantsMove` zurück (und drosselt selbst über
+`MoveRequestInterval`), der `AI MoveTo` selbst sitzt im `EventTick` des EventGraphen.
+
+**Per PIE geprüft:** Gegner startet bei (1725, 1948), ist zwei Messungen später bei (642, 771) und
+dann bei (96, 115) — er läuft die volle Strecke an Cover_1 (1200, 900) vorbei, ohne hängenzubleiben.
 
 ## Was den Slice kippen kann
 
