@@ -956,16 +956,31 @@ den Unterschied erst nach dem nächsten Levelwechsel merken, und genau daran hä
 **Gebaut am 16.09.** `BP_ExitDoor`, Kind von `BP_InteractStation`, bei (1400, 0). `LeaveSafehouse`
 bucht vorsichtshalber `BankRunMoney` (falls noch Run-Geld herumliegt) und lädt `L_Outside`.
 
-**Aufbau des Safehouse (16.09.):** Spieler startet bei (0, 0). Tür nach Osten bei (1400, 0), die
-drei Werkbänke westlich bei x = −1400 (y = −500 / 0 / +500), die fünf Kaliber-Stationen südlich bei
-y = −1400 (x = −1000 bis +1000). Abstand 500 uu, damit bei `InteractRange` 250 immer nur eine
-Station im Fokus ist.
+**Aufbau des Safehouse (16.09.):** Tür **rechts** bei (0, 1400) — die Kamera steht mit Yaw 0, also
+ist +X oben und +Y rechts. Die drei Werkbänke bei x = −1400 (y = −500 / 0 / +500), die fünf
+Kaliber-Stationen bei y = −1400 (x = −1000 bis +1000). Abstand 500 uu, damit bei `InteractRange`
+250 immer nur eine Station im Fokus ist. Die beiden Test-Würfel aus der Raummitte sind raus.
 
-**Stationsnamen stehen im HUD, nicht im Raum.** `WBP_HUD.GetPromptText` castet das fokussierte
-Interactable auf `BP_InteractStation` und hängt dessen `Label` an den Prompt — aus „Interact" wird
-„Interact   .50 BMG  500". Alles andere bleibt beim nackten „Interact" wie festgelegt. Der
-3D-`LabelText` über der Station bleibt zusätzlich drin, ist aus sehr steilem Winkel aber kaum
-lesbar.
+**Zwei Spawnpunkte, je nach Grund der Rückkehr (16.09.):**
+
+| Ankunft | Wo | Warum |
+|---|---|---|
+| Extraktion | direkt neben der Tür, (0, 1100) | Du kommst zur Tür herein, nicht in die Raummitte |
+| Tod | Raummitte, (0, 0) | Du wachst im Safehouse auf, nicht an der Tür |
+
+Getragen von `GI_Achachay.DiedLastRun`: `ClearRunState` (Tod) setzt es auf **true**,
+`BankRunMoney` (Extraktion und Verlassen) auf **false**; Startwert true, damit der allererste
+Spielstart in der Mitte beginnt. `PC_Safehouse.PlaceAtEntry` läuft im `BeginPlay` und setzt den
+Pawn auf den Actor mit dem Tag `EntrySpawn`, **wenn** nicht gestorben wurde. Sonst bleibt der
+PlayerStart in der Mitte stehen.
+
+**Per PIE geprüft:** `DiedLastRun` false → Spieler bei (0, 1100) mit Blick in den Raum;
+`DiedLastRun` true → (0, 0).
+
+**Stationsbeschriftung: vorerst keine.** Erst gab es TextRender über jeder Station, dann den Namen
+im HUD-Prompt. Beides wieder raus — die Stationen werden am Ende **am Mesh** unterscheidbar sein,
+und bis dahin tut es die Position. Die Variable `Label` bleibt für später drin, der Prompt zeigt
+wieder nur „Interact".
 
 > ### ⛳ Gate 2 — nach Schritt 35 (So 20.09.)
 > **Willst du nach dem Einkauf sofort wieder raus?**
