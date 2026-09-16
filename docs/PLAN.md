@@ -95,7 +95,7 @@ Boolean-Action — die Belegung war ohnehin ein Mismatch.)
 
 - **Waffenbank** — eine Station pro Kaliber. Hingehen, interagieren, **einmalig freischalten**.
   Danach ist die Station erledigt. Kein Shop-Bildschirm: Wer bezahlen kann, kauft.
-- **Werkbank** — die drei permanenten Upgrades: Speed, Armor, Health.
+- **Werkbank** — die permanenten Upgrades: Speed, Armor, Health, Damage, Stamina, Reload.
 - **Vorratsregal** — Heilung und Granaten, einzeln gekauft.
 
 ### Preise (Startvorschlag)
@@ -131,7 +131,7 @@ Verbrauchsgüter.
 | **Kaliberwechsel** | Ein Knopf wechselt durch die freigeschalteten Kaliber. Keine Slots. |
 | **Munition** | **Unbegrenzt.** Ein Kaliber wird einmalig freigeschaltet, danach dauerhaft nutzbar. 6mm ist von Anfang an da. |
 | **Magazin** | Magazin und Nachladen sind der alleinige Taktgeber und die eigentliche Kostenseite eines starken Kalibers. |
-| **Upgrades** | Genau drei: Speed, Armor, Health. Dauerhaft. |
+| **Upgrades** | Sechs: Speed, Armor, Health, Damage, Stamina, Reload. Dauerhaft. (Am 16.09. von drei erweitert.) |
 | **Stamina** | Dashes kosten Stamina, die sich nachlädt. Ersetzt den festen Cooldown. |
 | **Verbrauchsgüter** | Heilung und Granate, einzeln gekauft. Bei Benutzung weg — und beim Tod ebenfalls. |
 | **Geld** | Kauft genau vier Dinge: Kaliber-Freischaltungen, Granaten, Heilung und die drei Upgrades. Sonst nichts. |
@@ -164,8 +164,8 @@ existieren** — der Vertical Slice hängt an denen, nicht an der Wirtschaft. De
 
 - **Munition ist unbegrenzt**, Kaliber werden einmalig freigeschaltet. Das nimmt Vorrat, Packungen,
   Preis-pro-Schuss und den Rückfall auf 6mm komplett aus dem Weg.
-- Geld kauft nur noch **vier Dinge**: Kaliber-Freischaltungen, Granaten, Heilung, und die drei
-  Upgrades (Speed, Armor, Health).
+- Geld kauft nur noch **vier Dinge**: Kaliber-Freischaltungen, Granaten, Heilung, und die
+  Upgrades (am 16.09. von drei auf sechs erweitert).
 - Als Nächstes stehen **19–22** an: Health-Komponente, Schaden am Ziel, `BP_EnemyBase`, `L_Outside`
   als Graybox. Erst danach wieder Safehouse-Stationen.
 
@@ -939,6 +939,26 @@ kein Shop-Bildschirm, wer bezahlen kann, kauft.
 Preis: `BasePrice + Stufe × PriceStep` = **80, 140, 200, 260, 320**, `MaxLevel` 5. Bei rund 1 $ pro
 Kill und 150–250 $ aus einem guten Run ist das früh eine Stufe pro Run, später mehrere Runs.
 
+**Von drei auf sechs Upgrades erweitert (16.09.).** Die „Festgelegt"-Zeile sagte *genau drei*; das
+gilt nicht mehr. Grund: Nach den Kaliber-Freischaltungen gab es **keine Schadensschraube mehr** —
+und genau die braucht man gegen Rusher mit wachsender HP.
+
+| Upgrade | Pro Stufe | Stufe 5 | Wirkt auf |
+|---|---|---|---|
+| Speed | +60 uu/s | 1100 | `GetPlayerStats` → `ApplyPlayerStats` |
+| Health | +25 HP | 225 | `GetPlayerStats` → `InitHealthFromStats` |
+| Armor | +6 % | 30 % | `GetPlayerStats` → `BPC_Health.ArmorReduction` |
+| **Damage** | +8 % | **+40 %** | `GI.GetDamageMultiplier` in `BP_Weapon.SpawnShot` |
+| **Stamina** | +25 max, +5 Regen | 225 / 50 | `GetPlayerStats` |
+| **Reload** | −10 % | **−50 %** | `GI.GetReloadMultiplier` in `BP_Weapon.StartReload` |
+
+Sechs Upgrades × 1000 $ voll ausgebaut plus 1180 $ für alle Kaliber = **7180 $** Gesamtsenke.
+
+**Reload ist der wacklige Posten.** Der Plan nennt Magazin und Nachladen „der alleinige Taktgeber
+und die eigentliche Kostenseite eines starken Kalibers" — ein −50-%-Upgrade weicht genau das auf.
+`.50 BMG` fällt damit von 3,2 s auf 1,6 s. Bewusst so entschieden; `GetReloadMultiplier` klemmt bei
+0,5 ab, damit es nicht weiter rutschen kann. **Bei Gate 2 zuerst hier hinschauen.**
+
 Die GameInstance hat dafür drei neue Funktionen: `SpendMoney(Amount) → Paid`,
 `GetUpgradeLevel(UpgradeId)` und `RaiseUpgradeLevel(UpgradeId)`. Damit liegt die Geldlogik an
 **einer** Stelle statt in jeder Station.
@@ -957,7 +977,8 @@ den Unterschied erst nach dem nächsten Levelwechsel merken, und genau daran hä
 bucht vorsichtshalber `BankRunMoney` (falls noch Run-Geld herumliegt) und lädt `L_Outside`.
 
 **Aufbau des Safehouse (16.09.):** Tür **rechts** bei (0, 1400) — die Kamera steht mit Yaw 0, also
-ist +X oben und +Y rechts. Die drei Werkbänke bei x = −1400 (y = −500 / 0 / +500), die fünf
+ist +X oben und +Y rechts. Werkbänke in zwei Reihen: Speed / Armor / Health bei x = −1400
+(y = −500 / 0 / +500), Damage / Stamina / Reload bei x = −900 (gleiche y). Die fünf
 Kaliber-Stationen bei y = −1400 (x = −1000 bis +1000). Abstand 500 uu, damit bei `InteractRange`
 250 immer nur eine Station im Fokus ist. Die beiden Test-Würfel aus der Raummitte sind raus.
 
