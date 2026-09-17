@@ -850,11 +850,38 @@ wahr ist. Hängt am Interface, gilt also für jedes Interactable ohne Zutun des 
 HUD wird inzwischen in **`PC_Outside` und `PC_Safehouse`** eingeblendet — anfangs nur draußen, was den
 Prompt am Safehouse-Würfel verschluckte.
 
-### 29. Sofort weitermachen
+### 29. Sofort weitermachen ✓ teilweise (18.09.)
 
 - Eine Taste, die das Fenster vorzeitig beendet und die nächste Welle startet
 
 **Probe:** Restzeit lässt sich überspringen.
+
+**Gebaut am 18.09. — breiter als geplant.** Die Taste beendet nicht nur das Rückwegfenster, sie
+startet die nächste Welle **jederzeit**, auch mitten im Kampf. Wellen stapeln sich dann.
+
+`BP_WaveDirector.ForceNextWave` löscht den laufenden `StartWave`-Timer (sonst gäbe es eine
+Doppelwelle, wenn man während des Fensters drückt) und ruft `StartWave` direkt. Das setzt
+`ExtractionOpen` ohnehin zurück — das Fenster ist damit weg. `PC_Outside.TriggerNextWave` sucht den
+Director und ruft die Funktion; gebunden an `IA_NextWave`, Ausgang **`Started`** (feuert genau
+einmal pro Druck, unabhängig davon, welcher Trigger in der IMC steht).
+
+**Warum das mehr ist als ein Skip:** Eine Welle dazuzuholen, während die alte noch lebt, ist eine
+echte Entscheidung — mehr Geld pro Zeit gegen mehr Gegner gleichzeitig. Das Rückwegfenster
+verschwindet dabei, also kostet es auch die Extraktion. Genau die Spannung, die der Plan mit den
+„neun Rückweg-Fenstern = zwei Minuten Stehzeit" beschreibt.
+
+**Per PIE geprüft** (über einen temporären Timer statt Tastendruck, weil PIE keine Eingaben
+annimmt): Nach `ForceNextWave` stehen **8 Gegner statt 3** — Welle 1 (3) lebt weiter, Welle 2 (5)
+kommt dazu. Timer danach entfernt.
+
+**Offen: die Tastenbelegung.** `IA_NextWave` ist angelegt und verdrahtet, aber die Zuordnung zu
+einer Taste fehlt — `IMC_Gameplay.Mappings` lässt sich per MCP nicht lesen und damit auch nicht
+gefahrlos schreiben (die Eigenschaft liest als leeres Array zurück, obwohl alle Mappings da sind).
+Muss von Hand in die IMC.
+
+**Zu bedenken beim Testen:** Ein Druck während des Fensters kostet die Extraktion sofort, ohne
+Rückfrage. Falls sich das zu scharf anfühlt, macht ein **Hold-Trigger** (0,4 s) in der IMC daraus
+eine bewusste Geste — eine Zeile in derselben Maske, kein Umbau.
 
 ### 30. Tod-Regel
 
