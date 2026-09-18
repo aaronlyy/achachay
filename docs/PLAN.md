@@ -1026,10 +1026,36 @@ PlayerStart in der Mitte stehen.
 **Per PIE geprüft:** `DiedLastRun` false → Spieler bei (0, 1100) mit Blick in den Raum;
 `DiedLastRun` true → (0, 0).
 
-**Stationsbeschriftung: vorerst keine.** Erst gab es TextRender über jeder Station, dann den Namen
-im HUD-Prompt. Beides wieder raus — die Stationen werden am Ende **am Mesh** unterscheidbar sein,
-und bis dahin tut es die Position. Die Variable `Label` bleibt für später drin, der Prompt zeigt
-wieder nur „Interact".
+**Stationsbeschriftung, dritter Anlauf (18.09.).** Erst TextRender über jeder Station, dann der
+Name im HUD-Prompt, dann beides raus — und jetzt zeigt der Prompt **was die Interaktion tut, mit
+Preis**. Kein Widerspruch zum früheren „einfach nur ein Interact": das galt, als es noch keine
+Läden gab. Vor einem Kauf muss man wissen, was er kostet.
+
+Getragen von `BP_InteractStation.GetPrompt() → String`, das jede Kindklasse überschreibt:
+
+| Station | Prompt |
+|---|---|
+| Werkbank | `SPEED   Stufe 3   200 $` bzw. `SPEED   max` |
+| Waffenbank | `.50 BMG  freischalten   500 $` bzw. `.50 BMG   schon frei` |
+| Ausgangstür | `Rausgehen  -  neuer Run` |
+| Safehouse-Tür (draußen) | `Extrahieren   +120 $` bzw. `Tuer zu  -  Welle laeuft` |
+
+`WBP_HUD.GetPromptText` castet das fokussierte Interactable auf `BP_InteractStation`, sonst auf
+`BP_SafehouseDoor`, sonst bleibt es beim nackten „Interact" — alles andere im Spiel behält also den
+schlichten Prompt. Die Preise sind aus den `Label`-Werten raus, die stehen jetzt im Prompt.
+
+**Funktionen *mit* Rückgabewert lassen sich als Funktionsgraph überschreiben** (`add_function_graph`
+im Kind erzeugt einen Override mit Parent-Call). Nur Funktionen **ohne** Ausgabe sind
+„event-shape" und brauchen `add_event` — siehe `OnInteract` unter 32a.
+
+**Dabei erneut in dieselbe Falle getappt:** `GetPrompt` ist impure, und
+**`(return (impure-call))` führt den Aufruf nie aus** — der Prompt blieb leer, obwohl Fokus und
+Zielobjekt stimmten. Exakt derselbe Fehler wie bei `BP_Weapon.GetMagazineRounds` am 15.09. Erst
+`(bind x (call))`, dann `(return x)`. Aufgefallen ist es nur, weil ein temporäres `LogString`
+`focus=true  obj=BP_Workbench_C_0` bei leerem Prompt zeigte — die Ursache lag damit nicht am Fokus.
+
+**Per PIE geprüft** (Spieler jeweils an die Station teleportiert): `SPEED   Stufe 3   200 $`,
+`.50 BMG  freischalten   500 $`, `9mm  freischalten   60 $`, `Rausgehen  -  neuer Run`.
 
 > ### ⛳ Gate 2 — nach Schritt 35 (So 20.09.)
 > **Willst du nach dem Einkauf sofort wieder raus?**
