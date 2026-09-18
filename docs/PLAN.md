@@ -741,8 +741,39 @@ Ab hier ist es dein Spiel und nicht mehr irgendein Wave-Shooter.
 gebucht. Die Auszahlung sitzt in `PayoutAndDie` **vor** dem Zerstören des Actors, sonst geht sie
 verloren.
 
-**Offen:** Der **Bonus pro überstandener Welle** fehlt noch — gehört zum WaveDirector, sobald das
-Wellenende auch ein Ereignis auslöst (Schritt 27).
+**Kill-Reward skaliert mit der Welle (18.09.).** Ein Dollar pro Kill blieb ein Dollar, egal ob
+Welle 1 oder Welle 10 — während die Gegner dreimal so viel HP hatten. `BP_EnemyBase` hat dafür
+einen `RewardMultiplier` bekommen, den `BP_WaveDirector.SetupEnemy` beim Spawn setzt:
+
+`Multiplikator = 1 + (Welle − 1) × RewardMulPerWave`, mit **`RewardMulPerWave` = 5,5**.
+
+`PayoutAndDie` zahlt `Truncate(KillReward × Multiplikator)`. Die Basiswerte pro Typ bleiben, was
+sie waren — Läufer 1, Schütze 3, Rusher 4 — und werden mitskaliert.
+
+| Welle | Mult. | Läufer | Schütze | Rusher | Gegner | Wellen-Ertrag |
+|---|---|---|---|---|---|---|
+| 1 | 1,0 | 1 | — | — | 3 | 3 |
+| 3 | 12,0 | 12 | — | — | 7 | 84 |
+| 5 | 23,0 | 23 | 69 | — | 11 | 299 |
+| 7 | 34,0 | 34 | 102 | — | 15 | 646 |
+| 9 | 45,0 | 45 | 135 | — | 19 | 1125 |
+| **10** | **50,5** | **50** | 151 | 202 | 21 | 1505 |
+
+Die 5,5 sind so gewählt, dass ein Läufer auf **Welle 10 genau 50 $** bringt — der Punkt, an dem man
+stark genug für den Boss sein soll.
+
+**Per PIE geprüft:** Welle 1 → `RewardMultiplier` 1,0. Welle 10 → 50,5, Zusammensetzung
+17 Läufer + 3 Schützen + 1 Rusher.
+
+**Zwei Zahlen, die dadurch nicht mehr zusammenpassen:**
+
+1. **Ein voller Zehn-Wellen-Run bringt rund 5100 $**, die Gesamtsenke liegt bei 7180 $. Wer einmal
+   bis Welle 10 kommt, kauft danach fast alles. Der Plan will aber „Welle 10 fällt erst im vierten
+   bis fünften Run" — das trägt nur, solange Welle 10 früh **unerreichbar** ist. Sobald das
+   Wellenende bei 10 steht (Schritt 37/43), gehört das nachgerechnet.
+2. **Der Extraktionsbonus** ist mit `Welle × 10` stehengeblieben: Welle 10 zahlt dafür 100 — also
+   zwei Kills. Das entwertet den Rückweg gegenüber „noch einen mitnehmen". `BonusPerWave` sollte
+   mitwachsen.
 
 ### 27. Rückweg-Fenster ✔ (16.09.)
 
