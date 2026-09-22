@@ -49,10 +49,10 @@ Konsequenzen für die Arbeitsweise:
 - **`Config/DefaultInput.ini` enthält keine Bindings**, nur `AxisConfig` (Deadzones, Sensitivity).
   Alle Bindings laufen über Enhanced Input.
 - Der Spieler-Character nutzt einen **StaticMesh** (`characterMesh`), kein Skeletal Mesh.
-- **Es gibt bewusst kein SaveGame.** `SG_Achachay`, `SaveProgress` und `LoadProgress` existierten am
-  14.09. und wurden auf Wunsch des Nutzers wieder entfernt — siehe `docs/PLAN.md`, Schritt 12. Der
-  Zustand lebt ausschließlich in `GI_Achachay` und ist nach einem Neustart weg. **Das ist so
-  gewollt. Nicht „nachrüsten", ohne dass der Nutzer danach fragt.**
+- **SaveGame: am 14.09. gestrichen, am 23.09. zurückgeholt.** `SG_Achachay`, `SaveProgress` und
+  `LoadProgress` existierten am 14.09. und wurden auf Wunsch des Nutzers entfernt (Schritt 12).
+  **Am 23.09. hat der Nutzer ausdrücklich danach gefragt** — es steht als B1 im Fahrplan. Bis es
+  gebaut ist, lebt der Zustand ausschließlich in `GI_Achachay` und ist nach einem Neustart weg.
 
 ---
 
@@ -91,8 +91,17 @@ Konsequenzen für die Arbeitsweise:
   14.09. beinahe die falsche Meldung „Interact ist nicht verdrahtet".)
 - **Cast-Type-Ids behalten den Unterstrich.** `Utilities|Casting|CastToGI_Achachay` funktioniert
   genau so — die Unterstrich-Regel weiter unten gilt für Struct-/Interface-Nodes, nicht für Casts.
-- **Type-IDs mit Klammern brechen den DSL-Parser.** `Math|Intersection|LinePlaneIntersection(Origin&Normal)`
-  ist nicht schreibbar. Ausweichen: Rechnung von Hand oder anderen Node wählen.
+- **Type-IDs mit Klammern brechen den DSL-Parser — aber nicht `create_node`.** In einem
+  `write_graph_dsl`-Skript lässt sich `Widget|SetText(Text)` oder `Math|Integer|Clamp(Integer)`
+  nicht *benennen*, die Klammern beenden die S-Expression. **`create_node` nimmt exakt dieselben
+  IDs anstandslos** (am 23.09. mit `Widget|SetText(Text)` und `Utilities|Text|ToText(String)`
+  geprüft). Dazu kommt: Viele Klammer-Nodes landen im Graphen, **ohne dass sie jemand benennt** —
+  der DSL setzt Konvertierungen wie `ToFloat(Integer)` oder `ToString(Integer)` selbst ein.
+  **Konsequenz für die Wortwahl:** Eine Funktion mit Klammer-Nodes ist *nicht* „nicht neu
+  schreibbar". Sie ist neu baubar als DSL-Rumpf plus ein paar `create_node`/`connect_pins` für die
+  Klammer-Nodes. Nur ist das mehr Arbeit und mehr Risiko, als den bestehenden Graphen zu ergänzen —
+  das ist eine Abwägung, keine Grenze. (Am 23.09. hat der Nutzer zu Recht widersprochen: Die
+  fraglichen Graphen stammen selbst aus einer früheren Toolset-Sitzung.)
 - **`find_node_types` findet nichts bei Filtern mit Sonderzeichen** wie `*` oder `+`. Nach dem
   Klarnamen filtern und clientseitig nachfiltern.
 - **Löschen eines ReturnNode löscht den Output-Parameter mit.** Danach `add_function_param` erneut
@@ -165,8 +174,56 @@ Konsequenzen für die Arbeitsweise:
 - Nach dem Schreiben liegen alle Nodes auf Position `0,0` übereinander. Der Nutzer muss im Graph
   einmal aufräumen — das vorher ansagen, sonst wirkt es wie ein Fehler.
 
+- **`(return …)` legt den Output-Parameter NICHT an.** Existiert kein ReturnNode, bricht der
+  Schreibvorgang genau dort **still** ab — kein Fehler, der Rest des Bodys fehlt einfach. Und
+  `add_function_param` **vor** dem DSL-Schreiben nützt nichts, der Schreibvorgang entfernt den
+  ReturnNode wieder. Funktionierende Reihenfolge (22.09., `GetSpawnTransform`):
+  1. Alte Nodes löschen, 2. Body **ohne** `(return)` schreiben und das Ergebnis per `bind` an einen
+  Node hängen, 3. `add_function_param`, 4. `connect_pins` von Hand: Entry `then` →
+  ReturnNode `execute`, Wert-Pin → Return-Pin.
+- **Ein stiller Abbruch ist die Normalform des Fehlschlags.** Nach *jedem* `write_graph_dsl` mit
+  `find_nodes` + `get_node_infos` prüfen, ob die letzten Statements wirklich Nodes wurden. Bekannte
+  Auslöser: `(return …)` ohne Parameter (s. o.) und `(select …)` über **Vektoren**.
+- **`select` kann keine Vektoren** — dafür `Math|Vector|SelectVector` (positional: A, B, bPickA).
+  Über Floats und Ints funktioniert `select` und wird zu `Utilities|Select`.
+- **`(* vektor float)` wird zu `vector*vector`** und rechnet damit Unsinn. Es gibt keinen
+  schreibbaren `vector*float`-Node. Ausweg: den Skalar in den Vektor ziehen
+  (`MakeVector :X rad :Y 0 :Z 0`, dann `RotateVector`) oder komponentenweise multiplizieren.
+- **Pure Nodes werden pro Verwendung neu ausgewertet — auch wenn sie gebunden sind.** `bind` teilt
+  den *Node*, nicht den *Wert*. `(bind w (+ (GetCurrentWave) 1))`, dann `SetCurrentWave w` und
+  später nochmal `w` → das zweite `w` rechnet mit dem bereits erhöhten Wert. Bei allem, was einen
+  Zustand ändert: **erst setzen, dann die Variable zurücklesen.** (Kostete am 22.09. eine Welle
+  Versatz in der Tabellenzeile.)
+- **Pure Nodes mit mehreren Ausgängen sind eine Falle, wenn Zufall im Input steckt.**
+  `(bind (proj ok) (ProjectPointtoNavigation …))` sieht aus wie ein Aufruf mit zwei Ergebnissen —
+  tatsächlich wird der Node pro gelesenem Pin **erneut** ausgewertet. Hängt am Input ein
+  `RandomFloatInRange`, prüft man am Ende einen anderen Wert, als man benutzt. Ergebnis erst in
+  Member-Variablen schreiben (Setter sind impure, werten einmal aus), danach nur noch die
+  Variablen lesen.
+- **Eine Funktion leeren, auf die jemand zugreift, bricht den nächsten Schreibvorgang.** Mit dem
+  ReturnNode verschwindet der Output-Parameter, der Aufrufer zeigt ins Leere, und jedes
+  `write_graph_dsl` scheitert am Compile — auch das, mit dem man die Funktion gerade reparieren
+  will. Reihenfolge: **erst den Aufrufer leeren**, dann die Funktion neu bauen, dann den Aufrufer
+  neu schreiben.
+- **Neu angelegte Variablen sind nicht Instance Editable.** Im Level sind sie am Actor damit weder
+  sicht- noch einstellbar, und `set_properties` auf die Instanz scheitert mit „could not be set".
+  Für alles, was getunt werden soll: `set_variable_instance_editable`.
+- **`Class|X|Fn`: `self` steht bei Funktionen als erstes Argument, bei Variablen-Settern als
+  letztes.** Verlässlich ist nur die benannte Form: `(Class|BPEnemyBase|ApplyWaveProfile :self E …)`.
+- **`get_node_type_pins` legt zum Messen echte Nodes im angegebenen Graphen an** und räumt sie
+  danach wieder weg. Die in der Antwort genannten `refPath`s zeigen deshalb auf Nodes, die es nicht
+  mehr gibt — nicht als Ziel für `connect_pins` benutzen.
+- **`Utilities|Array|Get(acopy)` ist wegen der Klammern nicht schreibbar.** Für den Zugriff auf ein
+  Element ohne Index reicht `Utilities|Array|RandomArrayItem`; wo der Index zählt, lieber über
+  `Utilities|Array|Length` + `select` rechnen als den Get-Node zu erzwingen.
+
 ### Assets
 
+- **DataTables sind per Toolset voll bedienbar** — `create`, `add_rows`, `set_rows`, `get_rows`,
+  `get_schema`. Und zwar **auch mit einem selbstgebauten Struct als Row-Struct**, obwohl
+  `search_row_structs` nur native `FTableRowBase`-Abkömmlinge auflistet und eigene Structs
+  verschweigt. Die leere Liste ist kein Beweis — `create` mit dem Struct-Pfad einfach aufrufen.
+  Die Spaltennamen in `set_rows`/`get_rows` sind die Feldnamen in **camelCase** (`runnerCount`).
 - **`AssetTools` kann keine Assets erzeugen** — nur `duplicate`, `move`, `delete`, `create_folder`.
   Neues Asset gleichen Typs: ein bestehendes duplizieren und die Properties umsetzen (hat für
   `IA_Dash` → `IA_Aim` mit `ValueType: Axis2D` funktioniert).

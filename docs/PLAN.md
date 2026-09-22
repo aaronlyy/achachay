@@ -287,6 +287,161 @@ In dieser Reihenfolge streichen:
 
 ---
 
+## Fahrplan ab 23.09. — neu geschnitten
+
+Am 23.09. kam eine Wunschliste dazu (Boss, Menü, SFX, FX, Screenshake, Low-HP-Screen, Tank,
+Achievements, Savegame, Meshes, Animationen, Post Processing). Die **Abgabe bleibt der 25.09.** —
+das sind zwei Bautage plus den Freitag. Deshalb zwei Phasen: was den Slice trägt, und was danach
+kommt.
+
+Maßstab für Phase A ist die „Nie streichen"-Liste: geschlossener Loop ✔, Tod-Regel ✔,
+Rückwegfenster ✔, zwei spürbar verschiedene Kaliber ✔ — **es fehlt allein der Boss.**
+
+### Phase A — bis zur Abgabe
+
+| Tag | Was | Warum genau das |
+|---|---|---|
+| **Mi 23.09.** | **1. Wellenbonus** (unten) · **2. Wellenende bei 10 + Boss** | Ohne Ende hat der Slice kein Ziel, und der Boss ist der letzte Punkt der Nie-streichen-Liste |
+| | 3. HUD-Blöcke anschließen | wartet auf die sechs TextBlocks — siehe Schritt 24a |
+| **Do 24.09.** | 4. **Trefferfeedback**: FX + SFX für Schuss und Treffer, Screenshake | Der größte Unterschied zwischen „Graybox" und „Spiel" pro investierter Stunde |
+| | 5. **Roter Screen bei wenig HP** | Gehört zum selben Paket: Der Slice hat bisher keine Rückmeldung, dass es eng wird |
+| | 6. **Menü + Tod-Screen** | Ein Vertical Slice, der mit einem Levelstart beginnt, wirkt unfertig, egal wie gut der Kampf ist |
+| **Fr 25.09.** | 7. Balancing-Pass, 8. Build | **Keine neuen Funktionen.** Steht so schon im alten Zeitplan und gilt weiter |
+
+**Wenn Mittwoch kippt**, fällt in dieser Reihenfolge: Menü-Hintergrund → Tod-Screen → Screenshake.
+Boss und Wellenende fallen nie.
+
+### 1. Wellenbonus ✔ (23.09.)
+
+Der Extraktionsbonus steht auf `Welle × BonusPerWave` mit `BonusPerWave` = 10, Welle 10 zahlt also
+**100 $** — bei rund 1600 $ Kill-Einnahmen allein aus Welle 10. Der Rückweg lohnt sich damit nie.
+Neu: **`Bonus = Welle² × 10`**.
+
+| Welle | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Bonus neu | 10 | 40 | 90 | 160 | 250 | 360 | 490 | 640 | 810 | **1000** |
+| Kills dieser Welle | 10 | 27 | 59 | 123 | 208 | 338 | 515 | 754 | 1100 | 1596 |
+
+Damit liegt der Bonus ab Welle 4 zwischen 60 % und 100 % dessen, was eine ganze Welle an Kills
+bringt — genau der Punkt, an dem „noch eine Welle oder raus?" eine echte Frage wird. Quadratisch
+statt linear, weil ein linearer Bonus entweder früh zu fett ist (Welle 1 = 100 $ für nichts) oder
+spät wieder bedeutungslos.
+
+**Gebaut am 23.09.** Neue Funktion `BP_SafehouseDoor.BonusForWave(Wave) → Bonus` mit
+`Welle × Welle × BonusPerWave`; `DoExtract` und `GetPrompt` rufen sie statt selbst zu multiplizieren.
+`BonusPerWave` (10) bleibt der Regler und ist jetzt **Instance Editable**.
+
+**Warum eine eigene Funktion statt zwei Zeilen Rechnung:** Beide Graphen enthalten Nodes mit
+**Klammern im Type-Id** — `Game|OpenLevel(byName)` und `Utilities|String|ToString(Integer)`. Die
+brechen den DSL-Parser, ein Neuschreiben der Funktionen war damit ausgeschlossen. Also die Rechnung
+einmal per DSL in eine neue Funktion, und in den beiden alten Graphen nur den Aufruf per
+`create_node` in die Exec-Kette gehängt und die alten Multiplikations-Nodes entfernt.
+
+Ein voller Zehn-Wellen-Run bringt damit **5730 $** gegen **9080 $** Gesamtsenke — gut 1,6 volle
+Runs, um alles zu kaufen. Das passt zu „Welle 10 fällt im vierten bis fünften Run".
+
+### 2. Boss ✔ teilweise (23.09.)
+
+**`BP_EnemyBoss`**, Kind von `BP_EnemyBase`, wird vom Director gespawnt, sobald die Zeile
+`IsBossWave` gesetzt hat — zusätzlich zur normalen Welle, über dieselbe Ring-Spawnlogik.
+
+| Wert | Basis | auf Welle 10 |
+|---|---|---|
+| `BaseHealth` | 1200, `HealthScaleMul` 0,5 | **2040 HP** |
+| `MoveSpeed` | 260, `SpeedScaleMul` 0,3, Deckel 420 | **287 uu/s** — gut ein Drittel des Spielers |
+| `AttackDamage` / `AttackCooldown` | 25 / 1,6 s | 15,6 Schaden pro Sekunde |
+| `ShotSpeed` | 800 | langsam genug zum Ausweichen |
+| `ShotSize` | **1,5** | Actor-Skalierung *und* Trefferradius (75 statt 17,5) |
+| `KillReward` | 40 | 480 $ bei `RewardMul` 12 |
+| `BodyScale` | 2,4 | unübersehbar |
+
+**`ShotSize` ist neu an `BP_EnemyBase`** (Default 0,35 für alle anderen). `FireShot` hatte die
+Projektilgröße als Literal `0.35` im Graph; jetzt liest es die Variable. `BP_Projectile.Setup`
+skaliert damit Actor **und** `TraceRadius` (`Size × 50`) — ein Wert, zwei Wirkungen.
+
+**Per PIE geprüft** (Welle 1 testweise als Boss-Welle): ein `BP_EnemyBoss` neben zwei Läufern,
+1200 HP, Tempo 268 (260 plus Jitter), `ShotSize` 1,5, `ShotSpeed` 800. Danach zurückgestellt;
+`Wave10` bleibt die Boss-Zeile.
+
+### 3. Wellenende: Boss tot = durchgespielt ✔ (23.09.)
+
+Fällt der letzte Gegner einer Welle, die `IsBossWave` trägt, endet der Run — er läuft nicht weiter:
+
+- `BP_WaveDirector.RunOver` wird gesetzt, `ExtractionOpen` bleibt **dauerhaft** offen
+- **kein `WindowEndTime`, kein `StartWave`-Timer** — das 10-Sekunden-Fenster entfällt, man kann
+  sich beliebig Zeit lassen
+- `ForceNextWave` (die X-Taste) ist gesperrt, solange `RunOver` steht — sonst hätte ein
+  Tastendruck Welle 11 geholt, die mangels eigener Zeile wieder `Wave10` benutzt und damit einen
+  zweiten Boss gebracht
+- `GI_Achachay.GameCleared` wird gesetzt und überlebt den Levelwechsel
+
+Im Safehouse ist damit alles wie sonst: Das Run-Geld ist beim Durchgehen gebucht, Werkbank und
+Waffenbänke funktionieren weiter. Das Spiel ist durch, der Laden bleibt offen.
+
+**Im HUD** zeigt `t_Location` statt Ort und Koordinaten `*** BOSS BESIEGT - DURCHGESPIELT ***`,
+sobald `GameCleared` steht — in beiden Leveln. Ein eigener Vollbild-Endscreen bräuchte ein neues
+Widget, und Widgets kann das Toolset nicht anlegen (siehe 24a).
+
+**Per PIE geprüft:** Der *normale* Wellenwechsel überlebt den Umbau — Welle 1 testweise auf null
+Gegner gesetzt, nach dem Fenster stand `CurrentWave` auf 2 mit 9 gespawnten Gegnern,
+`ExtractionOpen` wieder false, `RunOver` false. Der Boss-Zweig selbst ist **nicht** per PIE
+geprüft: Dafür müsste der Boss sterben, und in einer Simulate-Runde greift ihn niemand an.
+
+### 4. Erfolgs-Flags: die Datenebene ✔ (23.09.)
+
+Vier Flags in `GI_Achachay`, alle überleben Tod und Levelwechsel:
+
+| Flag | Bedingung | Wo gesetzt |
+|---|---|---|
+| `GameCleared` | Boss-Welle geräumt | `CheckWaveOver` → `NoteGameCleared` |
+| `WaveUnder30` | irgendeine Welle in unter 30 s geräumt | `CheckWaveOver` → `NoteWaveCleared` |
+| `WaveUnder10` | dasselbe unter 10 s | dito |
+| `NoHitClear` | durchgespielt **ohne einen Treffer im Run** | `NoteGameCleared`, wenn `RunDamage` 0 ist |
+
+Dazu zwei Messwerte, die es vorher nicht gab:
+
+**Wellendauer.** `BP_WaveDirector.WaveStartTime` wird in `StartWave` gesetzt, `CheckWaveOver`
+reicht `Jetzt − WaveStartTime` an `NoteWaveCleared`. Nebenbei fällt `BestWaveTime` ab — die
+schnellste je geräumte Welle, brauchbar für eine Bestenliste im Safehouse.
+
+**Schaden im Run.** `RunDamage` zählt Treffer auf den Spieler und wird in `ResetRunClock`
+genullt — das läuft bei `BP_WaveDirector.BeginPlay`, also bei jedem Rausgehen. Ein Run ohne
+Treffer ist damit genau ein Run, keine Sitzung.
+
+**Wie der Schaden erkannt wird, ohne den Spieler anzufassen:** `BPC_Health` sitzt auf Spieler
+*und* Gegnern, `ApplyDamage` darf also nicht pauschal zählen. Die neue Funktion
+`NotePlayerDamage` castet den **Besitzer der Komponente** auf `BP_PlayerCharacter` — schlägt der
+Cast fehl, war es ein Gegner und es passiert nichts. Kein Flag am Spieler, keine Änderung an
+`BP_PlayerCharacter`.
+
+Ein Umweg war nötig: Eine Flag-Variable an der Komponente wäre einfacher gewesen, aber
+**SCS-Komponenten sind am CDO nicht adressierbar** (`…Default__BP_PlayerCharacter_C:Health` ist
+kein gültiger Objektpfad), der Wert hätte sich also nicht setzen lassen.
+
+**Per PIE geprüft:** Welle 1 testweise auf null Gegner — nach 1,07 s standen `WaveUnder30` und
+`WaveUnder10` auf true, `BestWaveTime` auf 1,07, `RunDamage` auf 0. Danach zurückgestellt.
+
+**Noch offen:** Die Pokale im Safehouse (ein Podest pro Flag, Platzhalter-Mesh, sichtbar sobald das
+Flag steht) und der Umbau des Safehouse-Grundrisses.
+
+### Phase B — nach der Abgabe
+
+Nach Aufwand sortiert, nicht nach Reiz:
+
+| # | Thema | Notiz |
+|---|---|---|
+| B1 | **Savegame** | Schritt 12 war am 14.09. **auf Wunsch gestrichen** und wird jetzt bewusst zurückgeholt. Geld, Upgrades, Kaliber, `HighestWave`, `TotalKills`, Uhren. Die GI hält den Zustand ohnehin an einer Stelle — es ist Speichern und Laden, kein Umbau |
+| B2 | **Tank-Gegnertyp** | Kindklasse mit hoher HP, niedrigem Tempo, eigenen Skalierungsfaktoren. Eine Spalte in `DT_Waves` dazu, sonst nichts — das ist der billigste Punkt der Liste |
+| B3 | **Run-Stats & Achievements** | 100 Kills · Welle unter 30 s · unter 10 s · Welle 10 ohne HP-Verlust. Braucht zwei neue Zähler: **Wellendauer** (Start/Ende im Director) und **Schaden im Run** (Hook in `BPC_Health`). Anzeige im Safehouse |
+| B4 | **Meshes und Map** | Der Punkt mit dem größten sichtbaren Effekt — und der einzige, der die Graybox wirklich ersetzt |
+| B5 | **Animationen** | ⚠ **Der Spieler nutzt derzeit ein StaticMesh**, kein Skeletal Mesh (`AGENTS.md` §2). Animationen heißen also: Mesh tauschen, Animation Blueprint bauen, Bewegungslogik nachziehen. Das ist der teuerste Posten der Liste, nicht der dekorativste |
+| B6 | **Shader & Post Processing** | Zuletzt, weil es auf allem anderen aufsetzt. Post-Process-Volume, Bloom/Tonemapping, Outline für Gegner |
+
+**Reihenfolge-Argument für B1 zuerst:** Ohne Savegame ist jeder Test ab Welle 5 ein Neuaufbau von
+Hand. Alles danach wird billiger, wenn es zuerst kommt.
+
+---
+
 # Baureihenfolge
 
 Jeder Schritt ist eine abgeschlossene Einheit mit einer Probe am Ende. Erst wenn die Probe
@@ -696,6 +851,63 @@ Widget-Tree einfügen. Bestehende dagegen schon — über `WidgetTree.<Name>` un
 Größe, Anker und Eigenschaften änderbar. Arbeitsteilung also: Element von Hand hineinziehen und
 benennen, Rest per Werkzeug.
 
+### 24a. HUD-Ausbau: Run-Infos ✔ (23.09.)
+
+Das HUD soll neben Leben/Geld/Waffe auch den Zustand des Laufs zeigen: **Ort, höchste Welle,
+Gesamt-Kills, Gesamtzeit seit Spielstart, Zeit im laufenden Outside-Run und die Upgrade-Stufen.**
+
+**Fertig — die Datenseite in `GI_Achachay`:**
+
+| Neu | Zweck |
+|---|---|
+| `HighestWave`, `TotalKills` | überleben den Tod, werden nie zurückgesetzt |
+| `TotalSeconds`, `RunSeconds`, `LastClockSample` | die beiden Uhren |
+| `NoteWave(Wave)` | zieht `HighestWave` nach — gerufen in `StartWave` |
+| `NoteKill()` | zählt hoch — gerufen in `BP_EnemyBase.PayoutAndDie` |
+| `ResetRunClock()` | nullt `RunSeconds` — gerufen in `BP_WaveDirector.BeginPlay` |
+| `UpdateClock(Now, CountRun)` | addiert die vergangene Zeit; **noch nicht gerufen**, das macht das HUD |
+| `FormatTime(Seconds) → String` | `mm:ss` |
+| `GetUpgradeSummary() → String` | `SPD 3  HP 2  ARM 0  DMG 4  STA 1  RLD 5` |
+
+**Warum die Uhr so gebaut ist.** `GetGameTimeInSeconds` fängt bei jedem `OpenLevel` wieder bei 0 an,
+eine Gesamtzeit kann also nicht einfach abgelesen werden. `UpdateClock` addiert stattdessen die
+Differenz zum letzten Aufruf und **verwirft Sprünge über 1 Sekunde oder rückwärts** — genau das
+passiert beim Levelwechsel. Kostet höchstens ein Aktualisierungsintervall pro Wechsel und braucht
+dafür keinen einzigen Hook in den drei Levelwechsel-Pfaden.
+
+`BP_WaveDirector` hat dafür eine gecachte `GI`-Referenz bekommen (in `BeginPlay` gesetzt). Grund:
+Ein Cast-Node **beendet den umgebenden Exec-Fluss** — hätte `StartWave` selbst gecastet, wäre die
+halbe Funktion in den `then`-Zweig gewandert.
+
+**Die sechs Textblöcke hat der Nutzer angelegt** — `TextBlock` ist kein `ActorComponent`, und ein
+Widget-Toolset gibt es nicht, das Toolset kann in `WBP_HUD` also nichts erzeugen (an einer
+Wegwerf-Kopie geprüft, nicht am Original): `t_Location`, `t_HighestWave`, `t_Kills`,
+`t_TimeTotal`, `t_TimeRun`, `t_Stats`.
+
+**Angeschlossen in drei Funktionen**, weil der Textsetzer nicht per DSL schreibbar ist:
+
+| Funktion | Was |
+|---|---|
+| `TickClock(GameInst, Dir)` | ruft `GI.UpdateClock`; `Dir` gültig = draußen = die Run-Uhr läuft mit |
+| `BuildRunInfoStrings(GameInst, Player)` | baut die sechs Strings in die Hilfsvariablen `TxtLocation` … `TxtStats` |
+| `ApplyRunInfoTexts()` | schreibt sie in die Blöcke |
+
+Alle drei hängen hinten an `RefreshHUD`, also im selben Tick-Takt wie der Rest des HUDs.
+
+**Warum die Dreiteilung:** `Widget|SetText(Text)` und `Utilities|Text|ToText(String)` tragen
+**Klammern im Type-Id** und brechen damit den DSL-Parser. `create_node` nimmt sie dagegen
+anstandslos — die Klammer-Einschränkung gilt nur für den DSL. Also: Strings per DSL bauen
+(lesbar, schnell), die zwölf Setz-Nodes per `create_node` + `connect_pins` verdrahten.
+`RefreshHUD` selbst wurde **nicht** neu geschrieben, sondern nur hinten erweitert — die Funktion
+enthält genau solche Klammer-Nodes, ein Neuschreiben hätte sie zerstört.
+
+**`t_Location` zeigt bewusst beides**, Levelname und Koordinaten (`L_Outside   1240 / -320`), weil
+„location" beides heißen kann.
+
+**Per PIE geprüft:** Nach einer Sekunde im Outside-Run stehen `TotalSeconds` **1,00** und
+`RunSeconds` **1,00** (beide laufen draußen mit), `HighestWave` 1. Die Uhr tickt also über
+`RefreshHUD` → `TickClock` → `UpdateClock`, wie gebaut.
+
 ### 25. Spielertod ✔ (16.09.)
 
 - Health auf 0 → Eingabe sperren, kurz warten, Karte neu laden
@@ -1012,6 +1224,7 @@ und genau die braucht man gegen Rusher mit wachsender HP.
 | **Reload** | −10 % | **−50 %** | `GI.GetReloadMultiplier` in `BP_Weapon.StartReload` |
 
 Sechs Upgrades × 1000 $ voll ausgebaut plus 1180 $ für alle Kaliber = **7180 $** Gesamtsenke.
+(Am 22.09. auf 9080 $ gestiegen, siehe Schritt 34a.)
 
 **Reload ist der wacklige Posten.** Der Plan nennt Magazin und Nachladen „der alleinige Taktgeber
 und die eigentliche Kostenseite eines starken Kalibers" — ein −50-%-Upgrade weicht genau das auf.
@@ -1025,6 +1238,31 @@ Die GameInstance hat dafür drei neue Funktionen: `SpendMoney(Amount) → Paid`,
 **Der Kauf wirkt sofort.** `BP_PlayerCharacter.RefreshStats` holt die Stats neu aus der GI und ruft
 `ApplyPlayerStats` + `InitHealthFromStats` — dieselbe Kette wie in `BeginPlay`. Ohne das würde man
 den Unterschied erst nach dem nächsten Levelwechsel merken, und genau daran hängt Gate 2.
+
+### 34a. Werkbank bis Stufe 6 ✔ (22.09.)
+
+`MaxLevel` von 5 auf **6** — eine Stufe mehr Luft nach oben, weil die Wellen nach dem Tempo-Pass
+deutlich härter sind. Der Preis der letzten Stufe ist `80 + 5 × 60` = **380 $**, ein voll
+ausgebautes Upgrade kostet damit **1380 $** statt 1000.
+
+| Upgrade | Pro Stufe | Stufe 5 (alt) | **Stufe 6 (neu)** |
+|---|---|---|---|
+| Speed | +60 uu/s | 1100 | **1160** |
+| Health | +25 HP | 225 | **250** |
+| Armor | +6 % | 30 % | **36 %** |
+| Damage | +8 % | +40 % | **+48 %** |
+| Stamina | +25 max, +5 Regen | 225 / 50 | **250 / 55** |
+| Reload | −10 % | −50 % | *bleibt bei 5* |
+
+**Reload steht bewusst weiter auf `MaxLevel` 5.** `GetReloadMultiplier` klemmt bei **0,5** ab, und
+Stufe 5 erreicht diese Kappe exakt — eine sechste Stufe würde 380 $ kosten und **nichts** bewirken.
+Statt einen Fehlkauf zu verkaufen, zeigt die Station weiter „RELOAD max". Wer Stufe 6 auch hier
+will, lockert die Kappe in `GI_Achachay.GetReloadMultiplier` (0,5 → 0,45); das ist genau die
+Schraube, vor der Schritt 34 warnt, deshalb nicht ungefragt.
+
+**Gesamtsenke steigt auf 9080 $** (5 × 1380 + 1000 für Reload + 1180 für alle Kaliber, vorher
+7180 $). Zusammen mit den höheren Kill-Prämien aus den größeren Wellen gehört beides in einem Zug
+nachgerechnet, sobald das Wellenende steht — siehe Schritt 44.
 
 ### 35. Ausgangstür im Safehouse ✔ (16.09.)
 
@@ -1088,6 +1326,201 @@ Zielobjekt stimmten. Exakt derselbe Fehler wie bei `BP_Weapon.GetMagazineRounds`
 **Per PIE geprüft** (Spieler jeweils an die Station teleportiert): `SPEED   Stufe 3   200 $`,
 `.50 BMG  freischalten   500 $`, `9mm  freischalten   60 $`, `Rausgehen  -  neuer Run`.
 
+### 37. Wellen aus `DT_Waves` ✔ (22.09.)
+
+Die Wellen kamen bis hierher aus Formeln im `BP_WaveDirector` (`3 + 2·step` Gegner, Typ-Anteile
+über verschachtelte Clamp-Rechnungen). Balancing hieß damit: Blueprint öffnen, Nodes lesen, Zahlen
+raten. Jetzt steht **jede Welle als Zeile in einer Tabelle**.
+
+**`S_WaveRow`** (vom Nutzer angelegt, Structs kann das Toolset nicht erzeugen) und
+**`DT_Waves`** unter `Waves/`, zehn Zeilen `Wave01`–`Wave10`:
+
+| Spalte | Bedeutung |
+|---|---|
+| `RunnerCount` / `ShooterCount` / `RusherCount` | Zusammensetzung der Welle |
+| `HealthMul` / `SpeedMul` | Faktoren auf die Basiswerte des Typs (1,0 = unverändert) |
+| `RewardMul` | Faktor auf `KillReward` des Typs |
+| `FirstBurst` | wie viele sofort beim Wellenstart dastehen |
+| `TrickleDelay` | Sekunden bis zum nächsten Nachrücker |
+| `IsBossWave` | letzte Welle — gesetzt auf `Wave10`, wird erst mit Schritt 43 wirksam |
+
+| Welle | Läufer | Schütze | Rusher | HP× | Tempo× | Geld× | Burst | Takt |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 10 | — | — | 1,00 | 1,00 | 1,0 | 6 | 1,40 s |
+| 3 | 18 | — | — | 1,30 | 1,08 | 2,2 | 8 | 1,15 s |
+| 5 | 26 | 5 | — | 1,60 | 1,16 | 4,0 | 10 | 0,95 s |
+| 7 | 34 | 7 | 2 | 1,90 | 1,24 | 6,6 | 12 | 0,80 s |
+| 10 | 48 | 12 | 9 | 2,40 | 1,35 | 12,0 | 18 | 0,55 s |
+
+(Stand nach dem Tempo-Pass vom 22.09. — die erste Fassung stand bei 8/16/22/28/40.)
+
+**Die Basiswerte pro Typ bleiben in den drei Gegner-Blueprints** (`BaseHealth`, `MoveSpeed`,
+`KillReward`, `AttackDamage`, …). Sie in die Tabelle zu ziehen hätte sechs Spalten pro Typ
+gekostet; die Class Defaults sind genauso Daten und einen Klick entfernt.
+
+**Nachrücker statt Pulk.** Eine Welle steht nicht mehr auf einen Schlag da: `FirstBurst` Gegner
+sofort, der Rest über einen Timer (`SpawnTick`) im Takt von `TrickleDelay`. Damit bleibt der Druck
+durchgehend, statt in einer Welle zu kommen und dann abzureißen.
+
+**Wellenende musste nachziehen.** `CheckWaveOver` hat vorher nur gezählt, ob noch Gegner leben —
+mit Nachrückern hätte das die Welle beendet, sobald der Burst tot ist. Jetzt gilt zusätzlich
+`SpawnsPending <= 0`.
+
+**Neue Funktionen im Director:** `SpawnOne` (würfelt den Typ aus den offenen Restzahlen, spawnt,
+ruft `SetupEnemy`), `SpawnTick` (Timer-Takt, löscht sich selbst bei leerem Rest). `SetupEnemy`
+reicht nur noch die drei Multiplikatoren der Welle an den Gegner weiter.
+
+**Wellen jenseits der Tabelle** laufen mit der letzten Zeile weiter (`min(Welle, Zeilenzahl)`),
+damit nichts bricht, solange das Ende bei Welle 10 noch nicht gebaut ist.
+
+**Dabei in eine Pure-Node-Falle getappt.** `(bind w (+ (GetCurrentWave) 1))` und danach
+`SetCurrentWave w` — `w` hängt an einem **pure** Node und wird bei *jeder* Verwendung neu
+ausgewertet, also auch nach dem Setzen. Welle 1 zog dadurch die Zeile `Wave02`. Sichtbar wurde es
+nur, weil `CurrentWave` 1 war, `CurHealthMul` aber 1,15. **Regel:** erst setzen, dann die Variable
+zurücklesen — nicht den Rechenausdruck mehrfach benutzen.
+
+**Per PIE geprüft** (Simulate, 9 s): `CurrentWave` 1, 8 Gegner, `CurHealthMul` 1,0,
+`CurRewardMul` 1,0, `CurTrickleDelay` 1,5, `SpawnsPending` 0.
+
+### 37a. Gegner kommen von allen Seiten — und verklumpen nicht mehr ✔ (22.09.)
+
+Drei Dinge machten den Kampf zu einfach, unabhängig von der Gegnerzahl:
+
+**1. Sie kamen immer aus denselben vier Ecken.** `GetSpawnTransform` nahm die Spawnpunkte reihum
+(`Index % 4`). Jetzt wird **im Ring um den Spieler** gespawnt: zufälliger Winkel, Radius zwischen
+`RingMin` (1200) und `RingMax` (2100), auf das NavMesh projiziert
+(`ProjectPointToNavigation`, Extent 800/800/500). Scheitert die Projektion — Spieler in der Ecke —,
+fällt es auf einen zufälligen Spawnpunkt zurück. Die vier Punkte stehen weiter im Level, dazu drei
+neue (`Spawn_N`, `Spawn_SE`, `Spawn_SW`), sind aber nur noch Rückfallebene.
+
+**2. Sie liefen alle auf denselben Punkt.** `AI MoveTo` zielte auf den **Actor** des Spielers, also
+für jeden Gegner auf exakt dieselbe Koordinate. `BP_EnemyBase` bekommt beim Spawn einen
+`ApproachOffset` (zufälliger Winkel, 0–260 uu), der Tick zielt auf **Spielerposition + Offset**.
+Damit umstellen sie dich, statt sich auf einer Stelle zu stapeln.
+
+**3. Sie standen ineinander.** `bUseRVOAvoidance` ist jetzt auf allen drei Typen an
+(`AvoidanceWeight` 0,5, `AvoidanceConsiderationRadius` 450). Dazu **Tempo-Jitter** von ±12 % pro
+Gegner in `ApplyWaveProfile` — sie kommen als Kette an, nicht als Wand.
+
+**Gemessen im Simulate-Lauf:** zwölf Gegner verteilt über die Winkel −147°, −111°, −29°, −16°,
+−1°, 40°, 55°, 72°, 92°, 105°, 155°, 165° — also rundherum statt in einem Keil.
+
+**Nachtrag am 22.09.: Gegner spawnten auf den Mauerkronen.** Gemeldet als „manche spawnen
+außerhalb", gemessen bei (2489, 0, **z 490**) — das ist oben auf der Ostmauer. Recast legt auf den
+100 uu breiten Kronen ein begehbares Band an, und die Projektion durfte mit `QueryExtent` Z **500**
+so weit nach oben schnappen. Ein Ringpunkt außerhalb der Arena landete damit auf der Mauer, statt
+zu scheitern und auf einen Spawnpunkt zurückzufallen. Zwei Änderungen:
+
+1. **`QueryExtent` auf 300/300/100.** Der Kandidat liegt auf Spielerhöhe (z ≈ 92); 100 reicht nach
+   unten auf den Boden, aber nicht mehr auf Deckungen (+108) oder Mauern (+308).
+2. **Arena-Grenze als eigene Prüfung.** `ArenaHalf` (2350) — liegt der projizierte Punkt außerhalb,
+   gilt er als ungültig und es greift der Spawnpunkt-Rückfall. Das hält auch dann, wenn das NavMesh
+   irgendwann alte Kacheln außerhalb behält.
+
+**Und der eigentliche Konstruktionsfehler dahinter:** `ProjectPointToNavigation` ist **pure**, also
+wurden `ProjectedLocation` und der Erfolgs-Bool bei *jeder* Verwendung neu ausgewertet — mit
+`RandomFloatInRange` im Input hieß das: **geprüfter und benutzter Punkt waren nicht derselbe.**
+Jetzt wird der Kandidat erst in `SpawnCandidate` geschrieben, das Ergebnis in `SpawnProjected` /
+`SpawnValid`, und alles Weitere liest die Variablen. Siehe die Pure-Node-Regel in `AGENTS.md`.
+
+**Per PIE geprüft (Stresstest):** Ring absichtlich auf 2400–3800 gestellt, also fast vollständig
+außerhalb der Arena — acht Gegner, alle auf z 90, keiner außerhalb ±2450. Vorher lag bei derselben
+Einstellung einer auf der Mauer.
+
+**`RingMin`, `RingMax`, `ArenaHalf`, `ExtractWindow` und `NextWaveDelay` sind jetzt
+Instance Editable** — im Level am `WaveDirector` einstellbar, ohne das Blueprint anzufassen.
+
+**`ApplyWaveProfile` ersetzt `ApplyWaveScaling`.** Statt additiver Boni jetzt multiplikativ, und
+der Typ-Faktor moduliert den Faktor der Welle: `1 + (Faktor − 1) × HealthScaleMul`. Ein Rusher mit
+`HealthScaleMul` 0,45 zieht aus `HealthMul` 2,6 also nur 1,72. `ApplyWaveScaling` bleibt vorerst
+im Blueprint liegen, wird aber nicht mehr gerufen — genauso die Director-Variablen `BaseCount`,
+`CountPerWave`, `HealthPerWave`, `SpeedPerWave`, `Shooter*`, `Rusher*` und `RewardMulPerWave`.
+
+### 44a. Tempo- und Mengen-Pass ✔ (22.09.)
+
+Erster Spieltest der neuen Wellen, Befund des Nutzers: *„ich kann denen allen ausweichen sehr
+einfach"*. Die Zahl dahinter: **Läufer 320 uu/s gegen 800 uu/s Spielerbasis** — 40 %. Wer dich nie
+einholt, ist keine Bedrohung, egal wie viele es sind. Das ist derselbe Befund wie am 16.09.
+(Schritt 27a), nur hatte der damalige Fix am additiven Wellenbonus gedreht statt an der Basis.
+
+**Basistempo pro Typ angehoben:**
+
+| Typ | Tempo alt | Tempo neu | Deckel alt | Deckel neu | Tempo-Faktor |
+|---|---|---|---|---|---|
+| Läufer | 320 | **620** | 620 | 1000 | ×1,0 |
+| Schütze | 210 | **400** | 340 | 620 | ×0,5 |
+| Rusher | 500 | **780** | 1120 | 1500 | ×2,5 |
+
+Damit liegt der Läufer auf Welle 1 bei rund **78 % deines Grundtempos** statt bei 40 % — ausweichen
+geht noch, weglaufen nicht mehr. Auf Welle 10 (`SpeedMul` 1,35) sind es **837 uu/s**, mit dem
+Jitter von ±12 % also 736–937: schneller als ein ungeupgradeter Spieler. Das **Speed-Upgrade wird
+dadurch zum ersten Mal notwendig** statt nur angenehm. Der Rusher erreicht auf Welle 10 rechnerisch
+1463 uu/s und läuft damit in seinen neuen Deckel.
+
+`SpeedMul` wächst dafür flacher (1,45 → **1,35** auf Welle 10), weil die Basis den Sprung schon
+trägt. `HealthMul` ebenfalls leicht zurück (2,60 → **2,40**) — mehr Gegner, die schneller bei dir
+sind, brauchen nicht zusätzlich mehr HP.
+
+**Mengen um rund ein Drittel hoch:** Welle 1 von 8 auf **10**, Welle 5 von 26 auf **31**, Welle 10
+von 58 auf **69**. Der Burst steigt mit (5 → 6 auf Welle 1, 16 → 18 auf Welle 10), der Takt wird
+enger (1,5 → 1,40 s bzw. 0,6 → 0,55 s).
+
+### 44b. Typen früher, Schütze schärfer ✔ (22.09.)
+
+Zweiter Befund aus demselben Test: Die Wellen spielten sich zu lange gleich, weil Schütze (ab 4)
+und Rusher (ab 6) erst spät dazukamen. **Schütze jetzt ab Welle 2, Rusher ab Welle 3** — bei
+unveränderten Gesamtmengen, es verschiebt sich nur die Mischung:
+
+| Welle | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Läufer | 10 | 12 | 14 | 18 | 22 | 25 | 28 | 32 | 36 | 42 |
+| Schütze | — | 2 | 3 | 5 | 6 | 8 | 10 | 12 | 14 | 17 |
+| Rusher | — | — | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 |
+| **gesamt** | 10 | 14 | 18 | 25 | 31 | 37 | 43 | 50 | 58 | 69 |
+
+Welle 1 bleibt bewusst sortenrein — eine Welle, um die Steuerung zu greifen, reicht.
+
+**Der Schütze war zu harmlos:** alle 2 s ein Schuss, Projektil mit 1200 uu/s. Auf 1100 uu
+Reichweite brauchte das Geschoss fast eine Sekunde — man lief einfach heraus, ohne es zu merken.
+Jetzt **`AttackCooldown` 2,0 → 1,4 s** und **`ShotSpeed` 1200 → 1800 uu/s**. Der Rusher bleibt
+unangetastet.
+
+Damit steigt der Schadensausstoß eines Schützen von 4,0 auf **5,7 pro Sekunde**. Auf Welle 10
+stehen 17 davon — rechnerisch knapp 100 Schaden pro Sekunde, wenn *alle* gleichzeitig freie Bahn
+haben. Das ist die Zahl, die die Deckungen im Level ab jetzt rechtfertigt: Projektile kollidieren
+mit den Blöcken, Sichtlinie ist also echter Schutz.
+
+**Per PIE geprüft:** Welle 1 testweise auf 4 Läufer / 3 Schützen / 3 Rusher gestellt — es spawnten
+exakt 4 / 3 / 3, und ein laufender Schütze trug `AttackCooldown` 1,4 und `ShotSpeed` 1800.
+Danach auf 10 / 0 / 0 zurückgesetzt.
+
+**Per PIE geprüft:** Welle 1 spawnt 10 Gegner, `MoveSpeed` der ersten sechs: 585, 668, 580, 619,
+659, 685 — also 620 mit dem gewollten Jitter.
+
+**Offen, bewusst:** Der Geldfluss steigt mit den Mengen mit (Welle 10 zahlt jetzt rund 1440 statt
+1224). Das gehört mit Schritt 44 nachgerechnet, sobald das Wellenende steht — vorher ist jede
+Zahl geraten.
+
+### 22a. Map auf 50×50 m verkleinert ✔ (22.09.)
+
+Das Areal war mit 8000×8000 uu (80×80 m) so groß, dass man jeder Welle einfach davonlaufen konnte —
+bei 800 uu/s Basistempo holt einen niemand ein, und die Gegner verteilten sich auf einer Fläche, auf
+der nichts gleichzeitig passierte. Jetzt **5000×5000 uu**, also **61 % weniger Fläche**:
+
+- Boden, `NavMeshBoundsVolume` und die vier Mauern auf 5000 gezogen, Mauern auf ±2500
+- Deckungen nach innen: (850, 650), (−900, 1000), (−1150, −850), (1050, −1050), (200, −1550)
+- Spawnpunkte auf den neuen Rand, dazu `Spawn_N`, `Spawn_SE`, `Spawn_SW` — jetzt sieben
+- `BP_SafehouseDoor` an die neue Südmauer auf (0, −2400)
+
+**Rückweg:** Von der entferntesten Ecke zur Tür sind es jetzt rund 3600 uu statt 5700 — bei 800 uu/s
+gut 4,5 Sekunden. Das Fenster steht auf 10 s und ist damit großzügig; sobald die Kurve sitzt, ist
+`ExtractWindow` der Regler, um den Rückweg wieder zur Entscheidung zu machen.
+
+**Nebenwirkung:** Das NavMesh wird beim ersten PIE neu erzeugt („Recreating dtNavMesh instance …
+mismatch in maxTiles"). Der Agent-Fix aus den technischen Schulden sitzt an der Actor-Instanz und
+hat das überlebt — die Gegner laufen weiterhin. Beim nächsten Editor-Neustart trotzdem in die
+`DefaultEngine.ini` nachziehen.
+
 > ### ⛳ Gate 2 — nach Schritt 35 (So 20.09.)
 > **Willst du nach dem Einkauf sofort wieder raus?**
 > Der Test, an dem das ganze Spiel hängt. Wenn der Kauf sich nicht spürbar anfühlt, sind die
@@ -1103,7 +1536,7 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 |---|---|---|
 | ~~35a~~ | ~~Echtes Pathfinding nachziehen~~ | **Erledigt am 17.09.** `AI MoveTo` auf dem NavMesh, Deckungen wieder drin. Siehe technische Schulden. |
 | 36 | Weitere Gegnertypen | Schütze und Rusher **am 16.09. gebaut**, Tank fehlt noch |
-| 37 | Wellen aus WaveData | Zusammensetzung und Menge als Daten, nicht als Nodes. Zehn Wellen, nach oben wachsende Menge und Härte. |
+| ~~37~~ | ~~Wellen aus WaveData~~ | **Erledigt am 22.09.** `DT_Waves` mit zehn Zeilen, Nachrücker statt Pulk. Siehe oben. |
 | 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Waffenbank im Safehouse |
 | 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
 | ~~40~~ | ~~Durchschlag~~ | **Vorgezogen am 16.09.** Siehe Notiz unter Schritt 20. |
