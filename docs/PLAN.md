@@ -595,6 +595,34 @@ plus Jitter); vorher liefen sie auseinander. Alle acht betroffenen Blueprints ko
 
 **Nicht per PIE geprüft:** der Kauf selbst — dafür braucht es eine Interaktion an der Bank.
 
+### 10. Spawnpunkte: Tür statt Kartenmitte, Tod ins Bett ✔ (23.09.)
+
+Zwei Meldungen aus dem Spieltest: *„ich spawne immer noch mitten in der Map, wenn ich aus der Tür
+gehe"* und *„wenn ich sterbe, spawne ich nicht im Schlafzimmer."*
+
+**Draußen** stand der `PlayerStart` schlicht bei (0, 0) — mitten in der Arena, weit weg von der
+Tür, durch die man gerade gegangen ist. Jetzt auf **(0, −2100)**, direkt vor der Safehouse-Tür
+(0, −2400), mit Blick nach Norden ins Areal. Man tritt also aus der Tür und steht davor, statt
+unvermittelt in der Mitte.
+
+**Im Safehouse** setzte `PC_Safehouse.PlaceAtEntry` den Spieler nur dann um, wenn er **nicht**
+gestorben war — nach einem Tod blieb er auf dem PlayerStart im Gang liegen. Jetzt wählt die
+Funktion den Zielpunkt über ein Tag:
+
+| Zustand | Tag | Ort |
+|---|---|---|
+| lebend zurück (extrahiert) | `EntrySpawn` | (0, 1100), neben der Ausgangstür |
+| gestorben | `BedSpawn` | (800, −900), im Schlafzimmer neben dem Bett |
+
+`BedSpawn` ist ein `TargetPoint` mit dem passenden Tag, gebaut wie der vorhandene `EntrySpawn`.
+Die Auswahl läuft über ein `select` auf `DiedLastRun` — kein zweiter Codepfad, nur ein anderer Tag.
+
+**Per PIE geprüft:** `DiedLastRun` true → Spieler bei (800, −900); false → (0, 1100); draußen →
+(0, −2100) mit Yaw 90.
+
+**Damit ist Schritt 46 zur Hälfte vorweggenommen:** „Aufwachen im Bett" passiert jetzt nach jedem
+Tod. Was noch fehlt, ist der Einstieg beim allerersten Start.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
