@@ -750,6 +750,16 @@ leichtes Flackern, Nebel."*
 mit `DipChance` Einbruch auf 15–55 %. `BaseIntensity`, `DipChance`, `FlickerInterval`, `Flickers`
 sind pro Instanz einstellbar.
 
+**Gegner-Glow (23.09.)** — damit man sie auf der dunklen Karte sieht:
+- Neues Material `M_Enemy` am `Body` von `BP_EnemyBase` (gilt für alle Gegner inkl. Boss):
+  dunkelroter Körper (`BodyColor`), Emission = `GlowColor` × (Fresnel × `Glow` 2,0 + `BaseGlow` 0,15)
+  — die Kanten leuchten, die Flächen glimmen leicht. Alles Parameter, also per Material Instance
+  pro Gegnertyp umfärbbar.
+- Neue Komponente `Glow` (PointLight) in `BP_EnemyBase`: rot, 1500 (unitless), Radius 380,
+  **ohne Schatten**, 40 cm über dem Boden — wirft einen roten Schein um jeden Gegner. Bei ~70
+  Gegnern gleichzeitig sind das ~70 kleine Lichter; ohne Schatten sollte das tragbar sein, falls es
+  ruckelt, ist das die erste Stellschraube.
+
 **Was nicht geht bzw. weggelassen wurde:**
 - **Schnee und Wind** brauchen ein Partikelsystem (Niagara) — kann das Toolset nicht anlegen.
   Importiert oder angelegt vom Nutzer, wird es platziert und abgestimmt.
