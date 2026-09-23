@@ -789,6 +789,28 @@ nach einem freien Platz). Jetzt:
   (→ 2400 u/s), `DashExitSpeed` 1200 wie vorher. Zu schnell → `DashDuration` hoch; zu weit → `DashDistance` runter.
 - `DashTarget` wird nicht mehr benutzt.
 
+### 15. Upgrade „Laser" ✔ (23.09.)
+
+Auf Zuruf: *„Upgrade namens Laser, kostet 1000, dann bekommt man immer einen Laser bis zur Maus bzw.
+Controller-Aim. Weniger Spread beim Schießen. Soll rot leuchten."*
+
+- **Kauf:** dritte Kiste im Safehouse, `SupplyBox_Laser` bei (450, 650) neben Heilung und Granaten.
+  `BP_SupplyBox` hat dafür den neuen Schalter **`IsLaser`**: `TryBuy` kauft dann einmalig
+  (`SpendMoney(Price)` → `HasLaser` = true → speichern), `BuildLaserPrompt(Normal)` zeigt
+  „LASER - Ziellicht, halbe Streuung   1000 $" bzw. „LASER   installiert". `GetPrompt` läuft
+  jetzt `BuildPrompt` → `BuildLaserPrompt` → Rückgabe; bei Heilung/Granate reicht `BuildLaserPrompt`
+  den normalen Text durch.
+- **Gespeichert:** `HasLaser` in `GI_Achachay` und `SG_Achachay`, in `SaveProgress`/`LoadProgress`
+  ergänzt. Alte Spielstände ohne das Feld laden als „kein Laser".
+- **Streuung:** `BP_Weapon.SpawnShot` multipliziert den Kaliber-Spread mit **`LaserSpreadMul` 0,5**,
+  wenn `HasLaser`.
+- **Sichtbarer Laser:** Die alte Debug-Linie (`DrawDebugLine`, im fertigen Spiel unsichtbar) ist
+  raus. Neu: Komponente `LaserBeam` am Spieler (Zylinder, `M_Laser` unlit, rot × `Glow` 2,5, keine
+  Kollision, kein Schatten). `DrawAimLaser` streckt ihn jeden Frame von 70 cm vor dem Spieler bis
+  zum Mauspunkt auf Höhe der Waffe; mit Gamepad `AimLaserLength` (1500) in Blickrichtung. Ohne Laser
+  unsichtbar. Dicke `LaserThickness` 0,06 (= 6 cm).
+- **Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:

@@ -95,6 +95,20 @@ Konsequenzen für die Arbeitsweise:
   Node **am lebenden Exec-Pfad** vom `FunctionEntry` aus liegt. `SetLook` in `BP_Weapon.SpawnShot`
   hing an der toten Kopie und lief nie — Kugeln blieben weiß (23.09.). Tote Kopien mit
   `delete_node` entfernen.
+- **`write_graph_dsl` ersetzt nicht immer — manchmal hängt es an.** In `BP_Weapon.SpawnShot`
+  lag nach dem Schreiben die alte Kette zusätzlich im Graph (75 statt 41 Nodes). Nach jedem
+  Rewrite: Nodes zählen, und alles löschen, was weder vom `FunctionEntry` über Exec erreichbar ist
+  noch per Daten-Pin in einen erreichbaren Node führt. **Nicht** über „irgendwie verbunden" prüfen:
+  Die tote Kopie hängt über Daten-Pins des Entry (`AimDir`) noch am Einstieg.
+- **Spawn-Node schreiben:** `Game|SpawnActorfromClass` mit Klasse als String, 5 Argumente (ohne
+  Instigator). Gelesen heißt er `Game|SpawnActorBPProjectile` — die Lese-ID lässt sich nicht schreiben.
+- **Komponenten-Getter** (`Variables|Default|GetLaserBeam`) tauchen in `find_node_types` nicht auf,
+  funktionieren im DSL aber.
+- **Ein zweiter `|ReturnNode` lässt sich nicht anlegen.** Verzweigungen vor der Rückgabe lieber
+  in eine Hilfsfunktion mit Eingang legen (Muster `BuildLaserPrompt(Normal)`).
+- **Features testen, die man kaufen müsste:** den Default am `SG_Achachay`-CDO kurz umstellen —
+  alte Spielstände ohne das Feld übernehmen den Default — PIE im Safehouse (dort wird nicht
+  gespeichert), danach **sofort zurückstellen**.
 - **Cast-Type-Ids behalten den Unterstrich.** `Utilities|Casting|CastToGI_Achachay` funktioniert
   genau so — die Unterstrich-Regel weiter unten gilt für Struct-/Interface-Nodes, nicht für Casts.
 - **Type-IDs mit Klammern brechen den DSL-Parser — aber nicht `create_node`.** In einem
