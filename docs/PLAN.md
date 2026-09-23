@@ -629,6 +629,58 @@ Die Auswahl läuft über ein `select` auf `DiedLastRun` — kein zweiter Codepfa
 **Damit ist Schritt 46 zur Hälfte vorweggenommen:** „Aufwachen im Bett" passiert jetzt nach jedem
 Tod. Was noch fehlt, ist der Einstieg beim allerersten Start.
 
+### 11. Heilung, Granate, Kisten, Pause, Tracer ✔ (23.09.)
+
+**Heilung.** `BPC_Health.Heal(Amount)` klemmt auf `MaxHealth`. `BP_PlayerCharacter.UseHeal` heilt
+**50 % der Maximal-HP**, verbraucht eine Ladung und speichert — aber nur, wenn eine Ladung da ist,
+der Spieler lebt und er **nicht schon voll** ist (sonst verschwendet man eine Heilung).
+
+**Granate.** Neuer Actor `BP_Grenade` (Kugel, 30 uu): fliegt in **0,5 s im Bogen** (180 uu hoch)
+zum Mauszeiger, zündet nach **1,4 s** und macht **150 Schaden im Radius 450** an jedem
+`BP_EnemyBase` — also auch am Boss. Zur Explosion bläht sie sich für 0,15 s auf den Radius auf, damit
+man die Wirkfläche sieht. Kills zählen normal (Geld, `TotalKills`), der Spieler selbst nimmt keinen
+Schaden. Wurf über `BP_PlayerCharacter.ThrowGrenade`.
+
+**Kisten.** `BP_SupplyBox`, Kind von `BP_InteractStation`, mit `IsGrenade` (statt einer String-ID,
+spart den String-Vergleich), `Price` und `MaxCarry`. Zwei Stück neben der Ausgangstür:
+
+| Kiste | Preis | max. |
+|---|---|---|
+| Heilung | 60 $ | 3 |
+| Granate | 80 $ | 3 |
+
+Der Prompt zeigt den Stand: `HEILUNG   1/3   60 $` bzw. `HEILUNG   3/3   voll`.
+
+**Savegame:** `HealCount` und `GrenadeCount` sind jetzt Felder 18 und 19. **Beim Tod verfallen sie
+weiterhin** (`ClearRunState`) — das Savegame sorgt nur dafür, dass ein Neustart des Spiels sie
+nicht löscht.
+
+**Pause.** Neue Action `IA_Pause` mit `bTriggerWhenPaused`, in `PC_Outside` und `PC_Safehouse` an
+`TogglePause` gehängt. **Die Taste fehlt noch** — die Belegung im IMC macht der Nutzer.
+
+**Erster Start im Bett.** `GI_Achachay.WokeUp` (nicht gespeichert): Beim ersten Betreten des
+Safehouse **pro Sitzung** geht es an den `BedSpawn`, danach nur noch nach einem Tod. Damit ist
+Schritt 46 erledigt.
+
+**Tracer.** Neues Material `M_Tracer` (Unlit, Emission = `Color` × `Glow` 6) als Standard am
+Projektil, dazu `BP_Projectile.SetLook(Color, Stretch, Thickness)`:
+
+| Wer schießt | Farbe | Form |
+|---|---|---|
+| Spieler | `ProjectileColor` des Kalibers | **4× gestreckt, halb so dick**, in Flugrichtung gedreht |
+| Läufer, Schütze, Rusher | Orange-Rot | rund |
+| Boss | Magenta | rund, weiterhin `ShotSize` 1,5 |
+
+Gegnerschüsse bleiben bewusst rund: Spieler- und Gegnerfeuer sind so auf einen Blick unterscheidbar,
+und der große Boss-Ball bleibt als Ausweich-Signal lesbar. Farbe pro Gegnertyp über die neue
+Variable `ShotColor`.
+
+**Per PIE geprüft:** erster Start → Spieler bei (800, −900). Alle 22 Blueprints kompilieren.
+**Nicht geprüft**, weil es Eingaben braucht: Kaufen, Heilen, Werfen, Pausieren, der Tracer-Look.
+
+**Tasten-Konflikt:** `IA_UseHeal` und `IA_NextWave` liegen **beide auf X**. Jedes Heilen würde die
+nächste Welle holen. Muss im IMC umgelegt werden.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
@@ -1743,9 +1795,9 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 | 36 | Weitere Gegnertypen | Schütze und Rusher **am 16.09. gebaut**. Tank fehlt — **braucht eine neue Spalte in `S_WaveRow`**, also eine Änderung am Struct durch den Nutzer |
 | ~~37~~ | ~~Wellen aus WaveData~~ | **Erledigt am 22.09.** `DT_Waves` mit zehn Zeilen, Nachrücker statt Pulk. Siehe oben. |
 | 38 | Volle Kaliber-Leiter | **Bänke stehen alle** (9mm, .45, 7.62, .44, .50 — 6mm ist frei). Offen ist nur das Tuning der Kaliberwerte |
-| 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
+| 39 | Projektil-Looks pro Kaliber | **Tracer und Farbe erledigt am 23.09.** (Schritt 11). Einschlag fehlt noch — gehört zum FX-Pass |
 | ~~40~~ | ~~Durchschlag~~ | **Vorgezogen am 16.09.** Siehe Notiz unter Schritt 20. |
-| 41 | Heilung, Granate, Vorratsregal | Eigene Tasten, pro Run gekauft, bei Benutzung und bei Tod weg |
+| ~~41~~ | ~~Heilung, Granate, Vorratsregal~~ | **Erledigt am 23.09.**, siehe Schritt 11 |
 | ~~42~~ | ~~Armor wirksam machen~~ | **War schon erledigt** — `BPC_Health.ApplyDamage` rechnet `Amount × (1 − ArmorReduction)`, Mindestschaden 1 |
 | ~~43~~ | ~~Boss~~ | **Erledigt am 23.09.** `BP_EnemyBoss` plus Wellenende, siehe Fahrplan 2 und 3 |
 | 44 | Balancing | Kurve so ziehen, dass Welle 10 erst im vierten bis fünften Run fällt. Prüfen, ob sich die teuren Kaliber lohnen. |
@@ -1759,7 +1811,7 @@ Bewusst zuletzt — nichts davon verändert, ob der Loop trägt.
 | # | Schritt | |
 |---|---|---|
 | 45 | Menü-Level | Gegner laufen im Hintergrund, Start-Button, Musik-Skip |
-| 46 | Aufwachen im Bett | Einstieg ins Safehouse beim ersten Start |
+| ~~46~~ | ~~Aufwachen im Bett~~ | **Erledigt am 23.09.**, siehe Schritt 10 und 11 |
 | 47 | Musik-States | Die sechs ungenutzten Loops an Ort und Wellenintensität koppeln |
 | 48 | Pause, Optionen, Tod-Screen | Alle mit Gamepad-Navigation über CommonUI |
 | 49 | Feedback | Treffer, Mündungsfeuer, Todes-Effekte, SFX |

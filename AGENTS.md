@@ -168,9 +168,12 @@ Konsequenzen für die Arbeitsweise:
 - **Komponenten zur Laufzeit gehen doch.** `AddComponent|Movement|AddProjectileMovementComponent`
   und Geschwister existieren als Graph-Nodes. Die Einschränkung weiter unten betrifft nur den
   **Konstruktionsbaum** (SCS) im Editor, nicht das Anhängen im laufenden Spiel.
-- **Enhanced-Input-Events** heißen `Input|EnhancedActionEvents|EnhancedInputActionIA_<Name>` und
-  lassen sich nur per `create_node` anlegen, nicht über die `(event …)`-Form des DSL. Danach
-  `Triggered` und `ActionValue` von Hand verbinden.
+- **Enhanced-Input-Events** heißen beim **Anlegen** `Input|EnhancedActionEvents|IA_<Name>` — *ohne*
+  das Präfix `EnhancedInputAction`, das `get_node_infos` beim **Lesen** zeigt
+  (`EnhancedInputActionIA_Reload`). Anlegen nur per `create_node`, nicht über `(event …)`. Für
+  Einmal-Aktionen (Heilen, Werfen, Pause) den Ausgang **`Started`** nehmen, nicht `Triggered` —
+  der feuert je nach Trigger jeden Frame, solange die Taste unten ist. Eine Pause-Action braucht am
+  Asset `bTriggerWhenPaused = true`, sonst kommt man aus der Pause nicht mehr heraus.
 - Nach dem Schreiben liegen alle Nodes auf Position `0,0` übereinander. Der Nutzer muss im Graph
   einmal aufräumen — das vorher ansagen, sonst wirkt es wie ein Fehler.
 
@@ -239,10 +242,22 @@ Konsequenzen für die Arbeitsweise:
   nie feuert. Der interne Name ist oft ein anderer als im Editor sichtbar: Die GameInstance zeigt
   „Event Init", intern heißt es **`ReceiveInit`**. Nach `add_event` am `type_id` prüfen:
   `AddEvent|EventInit` ist der Override, `AddEvent|Custom|Init` ist es nicht.
-- **Engine-Events, die einen `Parent:`-Aufruf brauchen, besser gar nicht überschreiben.** Den
-  Parent-Knoten kann das Toolset nicht anlegen (`find_node_types` kennt ihn nicht), und ein
+- **Engine-Events, die einen `Parent:`-Aufruf brauchen, besser gar nicht überschreiben.** Ein
   `Event Init` ohne `Parent: Init` überspringt die Subsystem-Initialisierung der GameInstance.
-  Ausweg: eine eigene `EnsureLoaded`-Funktion mit Merker-Bool, gerufen vom ersten Verbraucher.
+  `find_node_types` listet Parent-Knoten nicht — sie **existieren** aber: In Kind-Blueprints stehen
+  `|Parent:BeginPlay`, `|Parent:Tick`, `|Parent:GetPrompt` im Graph, `add_function_graph` legt sie
+  bei Overrides sogar selbst an. Ob `create_node` sie anlegen kann, ist ungeprüft. Sicherer Ausweg
+  bleibt: eine eigene `EnsureLoaded`-Funktion mit Merker-Bool, gerufen vom ersten Verbraucher.
+- **Gleichnamige Engine-Funktionen: der DSL nimmt die erste.** `Rendering|Material|SetVectorParameterValue`
+  löst auf die **MaterialParameterCollection**-Variante auf, nicht auf die für eine dynamische
+  Material-Instanz — beide tragen denselben Type-Id. Ausweg für Mesh-Farben: das Material als
+  `OverrideMaterials` am CDO setzen und zur Laufzeit
+  `Rendering|Material|SetVectorParameterValueOnMaterials` an der Mesh-Komponente rufen; das legt die
+  dynamische Instanz selbst an.
+- **Die DSL-Rückübersetzung verwechselt gleichnamige Variablen fremder Blueprints.** In
+  `BP_Grenade.Explode` zeigte `read_graph_dsl` `Class|BPPlayerCharacter|GetHealth`, der echte Node
+  hatte `self` vom Typ **BP_EnemyBase** — beide Klassen haben eine Variable `Health`. Bei allem,
+  was Typen betrifft: `get_node_infos` und den Pin-Typ ansehen, nicht die DSL-Ausgabe.
 
 ### Assets
 
