@@ -807,7 +807,9 @@ Controller-Aim. Weniger Spread beim Schießen. Soll rot leuchten."*
 - **Sichtbarer Laser:** Die alte Debug-Linie (`DrawDebugLine`, im fertigen Spiel unsichtbar) ist
   raus. Neu: Komponente `LaserBeam` am Spieler (Zylinder, `M_Laser` unlit, rot × `Glow` 2,5, keine
   Kollision, kein Schatten). `DrawAimLaser` streckt ihn jeden Frame von 70 cm vor dem Spieler bis
-  zum Mauspunkt auf Höhe der Waffe; mit Gamepad `AimLaserLength` (1500) in Blickrichtung. Ohne Laser
+  in Zielrichtung, **immer `AimLaserLength` = 4000 lang** (bis über den Bildschirmrand; Nutzerwunsch
+  23.09. — bis zum Mauspunkt sah es komisch aus). Die Maus gibt nur die Richtung vor, mit Gamepad
+  die Blickrichtung. Ohne Laser
   unsichtbar. Dicke `LaserThickness` 0,06 (= 6 cm).
 - **Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.
 
