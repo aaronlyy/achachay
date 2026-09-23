@@ -194,6 +194,13 @@ Konsequenzen für die Arbeitsweise:
   später nochmal `w` → das zweite `w` rechnet mit dem bereits erhöhten Wert. Bei allem, was einen
   Zustand ändert: **erst setzen, dann die Variable zurücklesen.** (Kostete am 22.09. eine Welle
   Versatz in der Tabellenzeile.)
+- **So findet man diese Falle systematisch:** Über `get_node_infos` alle Nodes eines Graphen
+  durchgehen und die zählen, deren **Datenausgang mehr als eine Verbindung** hat. Steckt zwischen
+  zwei Verwendungen ein Setter, der den Input verändert, liefern die beiden Verwendungen
+  verschiedene Werte. Am 23.09. hat dieser Scan drei Treffer auf einen Schlag gefunden:
+  `SpendMoney` (Vergleich `Geld >= Preis` vor *und* nach dem Abzug ausgewertet — Kauf zog Geld ab
+  und meldete trotzdem „nicht bezahlt"), `ApplyWaveProfile` (Tempo doppelt skaliert und neu
+  gewürfelt) und `SpawnOne` (zwei verschiedene Zufallswürfe für dieselbe Entscheidung).
 - **Pure Nodes mit mehreren Ausgängen sind eine Falle, wenn Zufall im Input steckt.**
   `(bind (proj ok) (ProjectPointtoNavigation …))` sieht aus wie ein Aufruf mit zwei Ergebnissen —
   tatsächlich wird der Node pro gelesenem Pin **erneut** ausgewertet. Hängt am Input ein

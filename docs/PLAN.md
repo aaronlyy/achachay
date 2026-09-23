@@ -561,6 +561,32 @@ lässt, wenn der Editor steht.
 nichts — und trotzdem stehen `WaveUnder30`, `WaveUnder10` und `BestWaveTime` **1,0000008** aus
 Lauf A. Der Wert kann nur aus der Datei kommen.
 
+### 9. Fehlersuche: Kauf zog Geld ab, ohne zu liefern ✔ (23.09.)
+
+Gemeldet: *„wenn ich ein Kaliber kaufe, geht mein Geld weg, aber ich bekomme das Kaliber nicht."*
+
+**Ursache** war die Pure-Node-Falle in `GI_Achachay.SpendMoney`, eingebaut beim Savegame-Umbau am
+selben Tag: Der Rückgabewert `Paid` hing direkt am Vergleich `Geld >= Preis`. Der ist **pure** und
+wurde zweimal ausgewertet — einmal für die Verzweigung und ein zweites Mal für den Return,
+**nachdem** das Geld abgezogen war. Wer mit 500 $ ein 500-$-Kaliber kauft, bekommt so `0 >= 500`
+zurück; `BP_WeaponBench.TryUnlock` sieht `Paid = false` und schaltet nicht frei. Nur wenn nach dem
+Kauf noch genug Geld übrig blieb, funktionierte es — deshalb fiel es bei den günstigen Kalibern
+nicht auf.
+
+**Behoben** über die Variable `LastSpendOk`: einmal vor dem Abzug gesetzt, der Return liest sie.
+
+**Derselbe Scan fand zwei weitere Stellen** (siehe `AGENTS.md`, „So findet man diese Falle"):
+
+| Funktion | Auswirkung |
+|---|---|
+| `BP_EnemyBase.ApplyWaveProfile` | `MaxWalkSpeed` wurde aus dem bereits gesetzten `MoveSpeed` **erneut** skaliert und neu gejittert. Auf Welle 10 rannten Gegner dadurch am Deckel (1000) statt bei den geplanten 837 |
+| `BP_WaveDirector.SpawnOne` | Der Typwurf wurde zweimal gewürfelt, die zweite Zahl entschied über den Schützen-Zweig — die Mischung wich also von der Tabelle ab |
+
+**Per PIE geprüft:** `MoveSpeed` und `MaxWalkSpeed` stimmen jetzt überein (573–650 bei Basis 620
+plus Jitter); vorher liefen sie auseinander. Alle acht betroffenen Blueprints kompilieren sauber.
+
+**Nicht per PIE geprüft:** der Kauf selbst — dafür braucht es eine Interaktion an der Bank.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
