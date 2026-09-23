@@ -683,6 +683,34 @@ Variable `ShotColor`.
 **Tasten-Konflikt:** `IA_UseHeal` und `IA_NextWave` liegen **beide auf X**. Jedes Heilen würde die
 nächste Welle holen. Muss im IMC umgelegt werden.
 
+### 12. Podeste zeigen ihren Pokal ✔ (23.09.)
+
+*„Ich will sehen, was ein Podest für ein Achievement ist, wenn ich davor stehe."* Die Podeste waren
+reine Würfel. Jetzt sind es **`BP_TrophyPodium`**, Kind von `BP_InteractStation` — also genau das
+Fokus- und Prompt-System der Werkbänke, ohne Änderung am HUD. Davor stehen zeigt:
+
+`POKAL   WELLE UNTER 10 SEKUNDEN   -   noch offen` bzw. `…   -   geschafft`
+
+| Podest | `Label` | `FlagId` |
+|---|---|---|
+| (900, 300) | BOSS BESIEGT | `GameCleared` |
+| (900, 650) | WELLE UNTER 30 SEKUNDEN | `WaveUnder30` |
+| (900, 1000) | WELLE UNTER 10 SEKUNDEN | `WaveUnder10` |
+| (900, 1350) | DURCHGESPIELT OHNE TREFFER | `NoHitClear` |
+
+Interagieren (E) tut an einem Podest nichts — `OnInteract` der Basis ist leer.
+
+**Ein Fund dabei:** Das Stations-Mesh `DoorMesh` sitzt in `BP_InteractStation` **150 uu über dem
+Boden** (Würfel mittig, bei `MeshScale` z 1,0 also von 100 bis 200). **Alle** Stationen schweben
+damit — Werkbänke, Waffenbänke, Kisten. Für die Podeste im Construction Script auf 40 gesetzt
+(Podest von 0 bis 80, Pokal bei z 115 genau obendrauf). Eine Änderung am Instanz-Komponent hält
+nicht: Der Construction Script baut geerbte Komponenten bei jedem Durchlauf neu auf den Klassenwert.
+
+**Geprüft:** alle vier Podeste bei `DoorMesh` z 40, Screenshot von der Seite. **Nicht per PIE
+geprüft:** der Prompt selbst — `PlaceAtEntry` setzt den Spieler beim Start immer an Bett oder Tür,
+ein Start neben den Podesten lässt sich nicht erzwingen. Der Weg ist aber derselbe wie bei den
+Werkbänken.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
