@@ -711,6 +711,44 @@ geprüft:** der Prompt selbst — `PlaceAtEntry` setzt den Spieler beim Start im
 ein Start neben den Podesten lässt sich nicht erzwingen. Der Weg ist aber derselbe wie bei den
 Werkbänken.
 
+### 13. Licht und Stimmung ✔ erster Pass (23.09.)
+
+Auf Zuruf: *„Safehouse gedimmter, warmes angenehmes Licht. Außen dunkel, kalt, windig, Schnee,
+leichtes Flackern, Nebel."*
+
+**Draußen — kalte Nacht.**
+- Mond statt Sonne: Directional Light **1,0** (war 6), kaltblau (0,55 / 0,65 / 1,0)
+- Himmelslicht **0,35**, kaltblau; Volumetric Cloud entfernt
+- Nebel dichter (0,06), kalt, **volumetrisch** — sichtbar vor allem als Dunst um die Lampen
+- `PostProcess_Night` (unbegrenzt): **feste Belichtung** (EV 0,5 min = max, sonst hellt die
+  Auto-Belichtung die Nacht wieder auf), kalter Farbstich, Sättigung 0,85, Vignette 0,6, leichtes Korn
+- **Lampen** (`BP_FlickerLight`): eine **warme über der Safehouse-Tür** — die Wärme zeigt den Weg nach
+  Hause —, dazu vier kalte Flutlichter am Rand, zwei davon flackern. Die Mitte bleibt bewusst dunkel.
+
+**Drinnen — warm und gedimmt.**
+- Mond 0,15, Himmelslicht 0,15, Nebel fast weg (0,01), Wolken entfernt
+- Sechs warme Lampen (~2700 K): eine pro Zone, dazu Eingang und Mitte. Bett- und Eingangslampe
+  **schimmern leicht wie Kerzenlicht** (Flackern an, aber `DipChance` 0 — keine Aussetzer)
+- `PostProcess_Warm`: feste Belichtung, warmer Farbstich, Vignette 0,5
+
+**`BP_FlickerLight`** (Elternklasse `PointLight`): Timer alle 0,08 s, meist 92–100 % Helligkeit,
+mit `DipChance` Einbruch auf 15–55 %. `BaseIntensity`, `DipChance`, `FlickerInterval`, `Flickers`
+sind pro Instanz einstellbar.
+
+**Was nicht geht bzw. weggelassen wurde:**
+- **Schnee und Wind** brauchen ein Partikelsystem (Niagara) — kann das Toolset nicht anlegen.
+  Importiert oder angelegt vom Nutzer, wird es platziert und abgestimmt.
+- **Sterne als Skybox:** weggelassen. Die Kamera schaut fast senkrecht nach unten, der Himmel ist
+  im Spiel nie im Bild.
+
+**Eine Falle beim Setzen:** Lichtfarben erwartet das Toolset als **0…1**, nicht als 0…255. Werte
+über 1 wurden verworfen, nicht übernommen — also kein Schaden, aber auch keine Wirkung.
+
+**Geprüft** per Screenshot aus dem laufenden Spiel (drinnen und draußen). Die Editor-Ansicht
+taugt dafür nicht: Die **NavMesh-Anzeige** legt sich grün über den Boden (im Viewport mit **P**
+umschaltbar, per Toolset nicht). **Vorsicht bei Tests:** PIE läuft gegen den echten Spielstand des
+Nutzers — draußen nur kurz testen, sonst stirbt der Spieler und verliert gekaufte Heilungen.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
