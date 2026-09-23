@@ -424,7 +424,7 @@ kein gültiger Objektpfad), der Wert hätte sich also nicht setzen lassen.
 **Noch offen:** Die Pokale im Safehouse (ein Podest pro Flag, Platzhalter-Mesh, sichtbar sobald das
 Flag steht) und der Umbau des Safehouse-Grundrisses.
 
-### 5. Pokalraum — geplant (24.09.)
+### 5. Pokalraum ✔ (23.09.)
 
 Pro Flag ein Podest im Safehouse. Podest steht immer da, der Pokal erscheint, sobald das Flag
 steht — das leere Podest ist der Hinweis, dass es dort etwas zu holen gibt.
@@ -440,10 +440,31 @@ steht — das leere Podest ist der Hinweis, dass es dort etwas zu holen gibt.
 - Vier Stück, später erweiterbar: Jedes neue Flag ist eine Zeile in `GetFlag` plus eine Instanz.
 
 ⚠ **`StaticMeshActor` steht per Default auf `Static`** — dann ignoriert der Actor jedes
-Verstecken und Bewegen zur Laufzeit, lautlos. Am CDO auf `Movable` setzen, sonst wiederholt sich
+Verstecken und Bewegen zur Laufzeit, lautlos. Am CDO auf `Movable` gesetzt, sonst wiederholt sich
 der Fehler von `BP_Projectile` (siehe `AGENTS.md` §3).
 
-### 6. Safehouse als Wohnung — geplant (24.09.)
+**Gebaut am 23.09.** Vier Podeste (Würfel 120 × 120 × 80) und vier `BP_Trophy` (Kegel) bei
+x 900, y 300 / 650 / 1000 / 1350 — im Outliner-Ordner `Trophies`, also dort, wo nach dem Umbau der
+Pokalraum liegt. Jede Instanz trägt ihren `FlagId` als String.
+
+**`GI_Achachay.GetFlag(FlagId) → bool`** löst den Namen auf. Zwei Umwege waren nötig:
+
+1. **`==` auf Strings löst nicht auf** (der generische Operator landet beim Zahlenvergleich), und
+   `Utilities|String|Equal(String)` trägt Klammern. Stattdessen der **String-Switch**, den der DSL
+   als `(switch string …)` direkt kennt.
+2. **Die Case-Werte sind keine Pins**, sondern die Node-Eigenschaft `pinNames`; im DSL heißen die
+   Ausgänge zwangsweise `Case_0…Case_3`. `pinNames` per `set_properties` auf die Flag-Namen
+   umzubiegen funktioniert — **kappt dabei aber alle Case-Verbindungen**, die danach neu gesetzt
+   werden müssen. Zugeordnet über den Getter, der am jeweiligen Setter hängt.
+
+Ein Schönheitsfehler bleibt: Die Funktion schreibt über die Hilfsvariable `FlagResult`, weil hinter
+einem Switch im DSL kein Statement mehr stehen darf.
+
+**Per PIE geprüft:** Alle Flags false → alle vier Pokale versteckt. `GameCleared` testweise am
+CDO auf true → **nur** `Trophy_GameCleared` sichtbar, die anderen drei weiter versteckt. CDO
+danach zurückgesetzt.
+
+### 6. Safehouse als Wohnung ✔ (23.09.)
 
 Der Boden ist **8000×8000**, genutzt wird ein Bereich von rund **2800×2800**. Alles steht frei im
 Raum, es gibt keine einzige Wand. Vorschlag, analog zum Umbau von `L_Outside`:
@@ -462,9 +483,33 @@ Nord-Süd-Richtung) mit vier Räumen daran:
 Damit hat jeder Abschnitt seinen Raum, und der Gang gibt dem Safehouse einen Weg statt einer
 Fläche. Türöffnungen bleiben als Lücken in den Wänden — Türen als Actor braucht es hier nicht.
 
-**Offen vor dem Bau:** Ob das Bett nur Deko ist oder der Einstiegspunkt beim ersten Start wird
-(Schritt 46, „Aufwachen im Bett"). Falls ja, gehört der `PlayerStart` ins Schlafzimmer und die
-Rückkehr aus dem Run weiterhin an die Tür.
+**Gebaut am 23.09.**, mit einer Abweichung: Die Räume reichen jeweils bis zur Mitte
+(y 0…1500 bzw. −1500…0), getrennt durch zwei Querwände bei y = 0. Das gibt vier gleich große
+Räume statt vier kleiner mit Restfläche.
+
+**Zwölf Wände**, alle 100 dick und 400 hoch, im Outliner-Ordner `Rooms`:
+
+| Wand | Lage |
+|---|---|
+| `Wall_North/South/East/West` | Außenmauern auf ±1500 |
+| `Hall_W_South/Mid/North`, `Hall_E_…` | die beiden Gangwände auf x = ∓250, jeweils dreigeteilt |
+| `Split_West`, `Split_East` | Querwände bei y = 0 zwischen Nord- und Südraum |
+
+Die Gangwände sind **absichtlich dreigeteilt**: Zwischen den Segmenten bleibt je eine **400 uu
+breite Lücke** als Türöffnung — eine pro Raum, mittig. Keine Tür-Actors, nur Durchgänge.
+
+**Einrichtung umgezogen:** die sechs Werkbänke in den Shop (zwei Reihen à drei), die fünf
+Kaliberbänke in die Waffenkammer, die vier Podeste standen schon im Pokalraum. Das **Bett** ist
+ein Platzhalter-Würfel (220 × 120 × 60) bei (1000, −900). `PlayerStart`, `EntrySpawn`, `ExitDoor`
+und der Plattenspieler liegen im Gang.
+
+**Geprüft:** Alle 24 Einrichtungs-Actors liegen im vorgesehenen Raum, keiner außerhalb von ±1440,
+Boden misst 3000 × 3000. Dazu ein Screenshot von oben — Räume, Gang und die vier Türöffnungen
+sitzen.
+
+**Offen:** Ob das Bett nur Deko ist oder der Einstiegspunkt beim ersten Start wird (Schritt 46,
+„Aufwachen im Bett"). Falls ja, gehört der `PlayerStart` ins Schlafzimmer und die Rückkehr aus dem
+Run weiterhin an die Tür.
 
 ### 7. Was der Nutzer beisteuern muss
 
@@ -1594,14 +1639,14 @@ Erst jetzt lohnt sich Breite — vorher weißt du nicht, wofür du sie baust.
 | # | Schritt | |
 |---|---|---|
 | ~~35a~~ | ~~Echtes Pathfinding nachziehen~~ | **Erledigt am 17.09.** `AI MoveTo` auf dem NavMesh, Deckungen wieder drin. Siehe technische Schulden. |
-| 36 | Weitere Gegnertypen | Schütze und Rusher **am 16.09. gebaut**, Tank fehlt noch |
+| 36 | Weitere Gegnertypen | Schütze und Rusher **am 16.09. gebaut**. Tank fehlt — **braucht eine neue Spalte in `S_WaveRow`**, also eine Änderung am Struct durch den Nutzer |
 | ~~37~~ | ~~Wellen aus WaveData~~ | **Erledigt am 22.09.** `DT_Waves` mit zehn Zeilen, Nachrücker statt Pulk. Siehe oben. |
-| 38 | Volle Kaliber-Leiter | 6mm bis .50 BMG, je eine Waffenbank im Safehouse |
+| 38 | Volle Kaliber-Leiter | **Bänke stehen alle** (9mm, .45, 7.62, .44, .50 — 6mm ist frei). Offen ist nur das Tuning der Kaliberwerte |
 | 39 | Projektil-Looks pro Kaliber | Tracer, Größe, Farbe, Einschlag — hier entsteht die Lesbarkeit im Kampf |
 | ~~40~~ | ~~Durchschlag~~ | **Vorgezogen am 16.09.** Siehe Notiz unter Schritt 20. |
 | 41 | Heilung, Granate, Vorratsregal | Eigene Tasten, pro Run gekauft, bei Benutzung und bei Tod weg |
-| 42 | Armor wirksam machen | Schadensreduktion in der Health-Komponente scharf schalten |
-| 43 | Boss | Am Ende von Welle 10, erstmal schlicht sehr viel HP |
+| ~~42~~ | ~~Armor wirksam machen~~ | **War schon erledigt** — `BPC_Health.ApplyDamage` rechnet `Amount × (1 − ArmorReduction)`, Mindestschaden 1 |
+| ~~43~~ | ~~Boss~~ | **Erledigt am 23.09.** `BP_EnemyBoss` plus Wellenende, siehe Fahrplan 2 und 3 |
 | 44 | Balancing | Kurve so ziehen, dass Welle 10 erst im vierten bis fünften Run fällt. Prüfen, ob sich die teuren Kaliber lohnen. |
 
 ---
