@@ -664,7 +664,7 @@ nicht löscht.
 Safehouse **pro Sitzung** geht es an den `BedSpawn`, danach nur noch nach einem Tod. Damit ist
 Schritt 46 erledigt.
 
-**Tracer.** Neues Material `M_Tracer` (Unlit, Emission = `Color` × `Glow` 6) als Standard am
+**Tracer.** Neues Material `M_Tracer` (Unlit, Emission = `Color` × `Glow`, anfangs 6, jetzt 2,5) als Standard am
 Projektil, dazu `BP_Projectile.SetLook(Color, Stretch, Thickness)`:
 
 | Wer schießt | Farbe | Form |
@@ -710,6 +710,20 @@ nicht: Der Construction Script baut geerbte Komponenten bei jedem Durchlauf neu 
 geprüft:** der Prompt selbst — `PlaceAtEntry` setzt den Spieler beim Start immer an Bett oder Tür,
 ein Start neben den Podesten lässt sich nicht erzwingen. Der Weg ist aber derselbe wie bei den
 Werkbänken.
+
+**Nachtrag Tracer (23.09.): Kugeln waren weiß.** Zwei Gründe: Die Kaliberfarben waren blass
+(6 mm und 9 mm fast weiß), und `Glow` 6 hat jede Farbe in der Tonwertkurve zu Weiß ausgebrannt.
+Jetzt `Glow` 2,5 und kräftige Farben, eine pro Kaliber — bewusst ohne Rot und Magenta, die gehören
+den Gegnern:
+
+| Kaliber | Farbe |
+|---|---|
+| 6 mm | Gelb (1 / 0,8 / 0) |
+| 9 mm | Grün (0,2 / 1 / 0,1) |
+| .45 ACP | Cyan (0 / 0,75 / 1) |
+| 7,62×39 | Blau (0,1 / 0,3 / 1) |
+| .44 Magnum | Orange (1 / 0,45 / 0) |
+| .50 BMG | Violett (0,65 / 0,15 / 1) |
 
 ### 13. Licht und Stimmung ✔ erster Pass (23.09.)
 
