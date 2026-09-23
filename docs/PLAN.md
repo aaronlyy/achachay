@@ -349,8 +349,8 @@ Runs, um alles zu kaufen. Das passt zu „Welle 10 fällt im vierten bis fünfte
 |---|---|---|
 | `BaseHealth` | 1200, `HealthScaleMul` 0,5 | **2040 HP** |
 | `MoveSpeed` | 260, `SpeedScaleMul` 0,3, Deckel 420 | **287 uu/s** — gut ein Drittel des Spielers |
-| `AttackDamage` / `AttackCooldown` | 25 / 1,6 s | 15,6 Schaden pro Sekunde |
-| `ShotSpeed` | 800 | langsam genug zum Ausweichen |
+| `AttackDamage` / `AttackCooldown` | 25 / **0,9 s** (war 1,6) | **27,8 Schaden pro Sekunde** statt 15,6 |
+| `ShotSpeed` | **1300** (war 800) | Flugzeit auf volle Reichweite: 1,15 s statt 1,9 s |
 | `ShotSize` | **1,5** | Actor-Skalierung *und* Trefferradius (75 statt 17,5) |
 | `KillReward` | 40 | 480 $ bei `RewardMul` 12 |
 | `BodyScale` | 2,4 | unübersehbar |
@@ -359,6 +359,14 @@ Runs, um alles zu kaufen. Das passt zu „Welle 10 fällt im vierten bis fünfte
 Projektilgröße als Literal `0.35` im Graph; jetzt liest es die Variable. `BP_Projectile.Setup`
 skaliert damit Actor **und** `TraceRadius` (`Size × 50`) — ein Wert, zwei Wirkungen.
 
+**Nachgeschärft am 23.09.** Auf Zuruf („der Boss muss härter werden"): `AttackCooldown` 1,6 → 0,9
+und `ShotSpeed` 800 → 1300. Der Schadensausstoß steigt damit von 15,6 auf **27,8 pro Sekunde**, und
+das Ausweichfenster auf voller Reichweite schrumpft von 1,9 s auf 1,15 s. Der Radius bleibt bei 75
+(`ShotSize` 1,5) — ausweichen kostet weiterhin nur einen Schritt zur Seite, aber man muss ihn jetzt
+früher machen. HP bleiben bei 1200 (2040 auf Welle 10); das ist der nächste Regler, falls er zu
+schnell fällt.
+
+**Noch offen — das Wellenende.**
 **Per PIE geprüft** (Welle 1 testweise als Boss-Welle): ein `BP_EnemyBoss` neben zwei Läufern,
 1200 HP, Tempo 268 (260 plus Jitter), `ShotSize` 1,5, `ShotSpeed` 800. Danach zurückgestellt;
 `Wave10` bleibt die Boss-Zeile.
