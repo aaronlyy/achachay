@@ -503,8 +503,14 @@ Räume statt vier kleiner mit Restfläche.
 | `Hall_W_South/Mid/North`, `Hall_E_…` | die beiden Gangwände auf x = ∓250, jeweils dreigeteilt |
 | `Split_West`, `Split_East` | Querwände bei y = 0 zwischen Nord- und Südraum |
 
-Die Gangwände sind **absichtlich dreigeteilt**: Zwischen den Segmenten bleibt je eine **400 uu
-breite Lücke** als Türöffnung — eine pro Raum, mittig. Keine Tür-Actors, nur Durchgänge.
+Die Gangwände waren **absichtlich dreigeteilt**: Zwischen den Segmenten blieb je eine 400 uu
+breite Lücke als Türöffnung — eine pro Raum, mittig. Keine Tür-Actors, nur Durchgänge.
+
+**Am 23.09. wieder entfernt — das Safehouse ist jetzt ein Loft.** Auf Zuruf sind alle acht
+Innenwände raus (`Hall_*`, `Split_*`), die vier Außenmauern bleiben. Die Zonen tragen sich über
+die Einrichtung: Werkbänke im Nordwesten, Kaliberbänke im Südwesten, Podeste im Nordosten, Bett im
+Südosten. Der Weg durch die Mitte bleibt als Achse lesbar, nur ohne Wände drumherum — und man
+sieht von überall, was es im Safehouse zu holen gibt.
 
 **Einrichtung umgezogen:** die sechs Werkbänke in den Shop (zwei Reihen à drei), die fünf
 Kaliberbänke in die Waffenkammer, die vier Podeste standen schon im Pokalraum. Das **Bett** ist
