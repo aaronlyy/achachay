@@ -774,6 +774,21 @@ taugt dafür nicht: Die **NavMesh-Anzeige** legt sich grün über den Boden (im 
 umschaltbar, per Toolset nicht). **Vorsicht bei Tests:** PIE läuft gegen den echten Spielstand des
 Nutzers — draußen nur kurz testen, sonst stirbt der Spieler und verliert gekaufte Heilungen.
 
+### 14. Dash: Sprint statt Teleport ✔ (23.09.)
+
+Auf Zuruf: *„Mein Dash ist mir zu schnell … nicht teleportieren, sondern eher zum Punkt sprinten."*
+
+Vorher setzte `StartDash` den Spieler per `SetActorLocation` direkt ans Ziel (mit Rückwärts-Suche
+nach einem freien Platz). Jetzt:
+- `StartDash` legt nur Richtung, Stamina und `DashEndTime` fest und setzt `IsDashing`
+- **`UpdateDash(DeltaSeconds)`** (neu, am Ende von `EventTick`): solange `IsDashing`, schiebt es
+  den Spieler jeden Frame um `DashDistance / DashDuration × DeltaSeconds` weiter — **mit Sweep**, also
+  stoppen Wände und Gegner wie beim Laufen. Die normale Geschwindigkeit wird dabei auf 0 gehalten.
+  Am Ende: Austrittsgeschwindigkeit `DashExitSpeed` in Dash-Richtung.
+- Werte (am Character einstellbar): `DashDistance` 600 (war 650), **`DashDuration` 0,25 s**
+  (→ 2400 u/s), `DashExitSpeed` 1200 wie vorher. Zu schnell → `DashDuration` hoch; zu weit → `DashDistance` runter.
+- `DashTarget` wird nicht mehr benutzt.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
