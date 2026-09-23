@@ -424,6 +424,65 @@ kein gültiger Objektpfad), der Wert hätte sich also nicht setzen lassen.
 **Noch offen:** Die Pokale im Safehouse (ein Podest pro Flag, Platzhalter-Mesh, sichtbar sobald das
 Flag steht) und der Umbau des Safehouse-Grundrisses.
 
+### 5. Pokalraum — geplant (24.09.)
+
+Pro Flag ein Podest im Safehouse. Podest steht immer da, der Pokal erscheint, sobald das Flag
+steht — das leere Podest ist der Hinweis, dass es dort etwas zu holen gibt.
+
+- **`BP_Trophy`**, Elternklasse `StaticMeshActor` (Mobility **Movable**, siehe Fallstrick unten),
+  Variable `FlagId` als String, Instance Editable. `BeginPlay` fragt die GI und versteckt sich per
+  `SetActorHiddenInGame`, wenn das Flag false ist.
+- **`GI_Achachay.GetFlag(FlagId) → bool`** — Namensschalter wie `RaiseUpgradeLevel`, damit die
+  Instanz im Level nur einen String setzen muss: `GameCleared`, `WaveUnder30`, `WaveUnder10`,
+  `NoHitClear`.
+- **Podeste** als einfache Würfel (`StaticMeshActor`, 100er Cube auf 1,2 × 1,2 × 0,8), Platzhalter
+  wie der Rest der Graybox. Pokal-Mesh vorerst ein gedrehter Kegel oder Zylinder.
+- Vier Stück, später erweiterbar: Jedes neue Flag ist eine Zeile in `GetFlag` plus eine Instanz.
+
+⚠ **`StaticMeshActor` steht per Default auf `Static`** — dann ignoriert der Actor jedes
+Verstecken und Bewegen zur Laufzeit, lautlos. Am CDO auf `Movable` setzen, sonst wiederholt sich
+der Fehler von `BP_Projectile` (siehe `AGENTS.md` §3).
+
+### 6. Safehouse als Wohnung — geplant (24.09.)
+
+Der Boden ist **8000×8000**, genutzt wird ein Bereich von rund **2800×2800**. Alles steht frei im
+Raum, es gibt keine einzige Wand. Vorschlag, analog zum Umbau von `L_Outside`:
+
+**Grundfläche auf 3000×3000**, Wände auf ±1500, dazu ein **Gang in der Mitte** (x −250…250, in
+Nord-Süd-Richtung) mit vier Räumen daran:
+
+| Raum | Lage | Inhalt |
+|---|---|---|
+| **Ausgang** | Nordende des Gangs, (0, 1400) | `ExitDoor` bleibt, wo sie ist; `EntrySpawn` daneben |
+| **Shop** | West-Nord, x −1400…−300, y 200…1400 | die sechs Werkbänke |
+| **Waffenkammer** | West-Süd, x −1400…−300, y −1400…−200 | die fünf Kaliberbänke |
+| **Pokalraum** | Ost-Nord, x 300…1400, y 200…1400 | die vier Podeste |
+| **Schlafzimmer** | Ost-Süd, x 300…1400, y −1400…−200 | das Bett |
+
+Damit hat jeder Abschnitt seinen Raum, und der Gang gibt dem Safehouse einen Weg statt einer
+Fläche. Türöffnungen bleiben als Lücken in den Wänden — Türen als Actor braucht es hier nicht.
+
+**Offen vor dem Bau:** Ob das Bett nur Deko ist oder der Einstiegspunkt beim ersten Start wird
+(Schritt 46, „Aufwachen im Bett"). Falls ja, gehört der `PlayerStart` ins Schlafzimmer und die
+Rückkehr aus dem Run weiterhin an die Tür.
+
+### 7. Was der Nutzer beisteuern muss
+
+Sammelstelle, damit es nicht in den Notizen untergeht. Alles davon kann das Toolset **nicht**
+erzeugen:
+
+| Wofür | Was |
+|---|---|
+| Roter Screen bei wenig HP | Image über den ganzen Canvas in `WBP_HUD`, Name `img_LowHP`, Deckkraft 0, „Is Variable" an |
+| SFX Schuss und Treffer | zwei `.wav` unter `Content/Achachay/Art/Audio/` importieren |
+| Menü | `WBP_Menu` — Canvas, Titel, Start-Button |
+| Tod-Screen | `WBP_DeathScreen` — Canvas, ein paar TextBlocks |
+| Endscreen (optional) | `WBP_EndScreen`, falls mehr als die HUD-Zeile gewünscht ist |
+| Bett, Pokal-Meshes (optional) | eigene Meshes statt Platzhalter-Primitive |
+
+Die Hüllen reichen — Verdrahtung und Zahlen kommen aus der GI, die dafür nötigen Werte
+(`HighestWave`, `TotalKills`, `TotalSeconds`, `RunSeconds`, `Money`, die vier Flags) stehen alle.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
@@ -432,7 +491,7 @@ Nach Aufwand sortiert, nicht nach Reiz:
 |---|---|---|
 | B1 | **Savegame** | Schritt 12 war am 14.09. **auf Wunsch gestrichen** und wird jetzt bewusst zurückgeholt. Geld, Upgrades, Kaliber, `HighestWave`, `TotalKills`, Uhren. Die GI hält den Zustand ohnehin an einer Stelle — es ist Speichern und Laden, kein Umbau |
 | B2 | **Tank-Gegnertyp** | Kindklasse mit hoher HP, niedrigem Tempo, eigenen Skalierungsfaktoren. Eine Spalte in `DT_Waves` dazu, sonst nichts — das ist der billigste Punkt der Liste |
-| B3 | **Run-Stats & Achievements** | 100 Kills · Welle unter 30 s · unter 10 s · Welle 10 ohne HP-Verlust. Braucht zwei neue Zähler: **Wellendauer** (Start/Ende im Director) und **Schaden im Run** (Hook in `BPC_Health`). Anzeige im Safehouse |
+| B3 | ~~**Run-Stats & Achievements**~~ | **Datenebene am 23.09. erledigt** (Schritt 4). Offen ist nur noch die Anzeige: Pokalraum, Schritt 5 |
 | B4 | **Meshes und Map** | Der Punkt mit dem größten sichtbaren Effekt — und der einzige, der die Graybox wirklich ersetzt |
 | B5 | **Animationen** | ⚠ **Der Spieler nutzt derzeit ein StaticMesh**, kein Skeletal Mesh (`AGENTS.md` §2). Animationen heißen also: Mesh tauschen, Animation Blueprint bauen, Bewegungslogik nachziehen. Das ist der teuerste Posten der Liste, nicht der dekorativste |
 | B6 | **Shader & Post Processing** | Zuletzt, weil es auf allem anderen aufsetzt. Post-Process-Volume, Bloom/Tonemapping, Outline für Gegner |
