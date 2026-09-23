@@ -711,7 +711,8 @@ geprüft:** der Prompt selbst — `PlaceAtEntry` setzt den Spieler beim Start im
 ein Start neben den Podesten lässt sich nicht erzwingen. Der Weg ist aber derselbe wie bei den
 Werkbänken.
 
-**Nachtrag Tracer (23.09.): Kugeln waren weiß.** Zwei Gründe: Die Kaliberfarben waren blass
+**Nachtrag Tracer (23.09.): Kugeln waren weiß.** Hauptgrund: `SetLook` hing in `SpawnShot` an
+einer toten Kopie der Schussschleife und lief nie (umgehängt, Kopie gelöscht). Dazu: Die Kaliberfarben waren blass
 (6 mm und 9 mm fast weiß), und `Glow` 6 hat jede Farbe in der Tonwertkurve zu Weiß ausgebrannt.
 Jetzt `Glow` 2,5 und kräftige Farben, eine pro Kaliber — bewusst ohne Rot und Magenta, die gehören
 den Gegnern:

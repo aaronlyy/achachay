@@ -89,6 +89,12 @@ Konsequenzen für die Arbeitsweise:
   wiederholter Inline-Aufruf, als gäbe es ihn mehrmals. **Wer Nodes zählen oder „ist da nichts?"
   beantworten will, nimmt `find_nodes` + `get_node_infos`, nicht die DSL-Ausgabe.** (Kostete am
   14.09. beinahe die falsche Meldung „Interact ist nicht verdrahtet".)
+- **Tote Node-Kopien nach DSL-Rewrites.** Ein neu geschriebener Funktionskörper kann die alte
+  Kette als unverbundene Kopie im Graph lassen (`read_graph_dsl` zeigt sie nicht, nur Nodes am
+  Exec-Pfad). Wer danach per `create_node` etwas „hinter" einen Node hängt, muss prüfen, dass dieser
+  Node **am lebenden Exec-Pfad** vom `FunctionEntry` aus liegt. `SetLook` in `BP_Weapon.SpawnShot`
+  hing an der toten Kopie und lief nie — Kugeln blieben weiß (23.09.). Tote Kopien mit
+  `delete_node` entfernen.
 - **Cast-Type-Ids behalten den Unterstrich.** `Utilities|Casting|CastToGI_Achachay` funktioniert
   genau so — die Unterstrich-Regel weiter unten gilt für Struct-/Interface-Nodes, nicht für Casts.
 - **Type-IDs mit Klammern brechen den DSL-Parser — aber nicht `create_node`.** In einem
