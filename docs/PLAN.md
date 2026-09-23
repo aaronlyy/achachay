@@ -632,8 +632,10 @@ Tod. Was noch fehlt, ist der Einstieg beim allerersten Start.
 ### 11. Heilung, Granate, Kisten, Pause, Tracer ✔ (23.09.)
 
 **Heilung.** `BPC_Health.Heal(Amount)` klemmt auf `MaxHealth`. `BP_PlayerCharacter.UseHeal` heilt
-**50 % der Maximal-HP**, verbraucht eine Ladung und speichert — aber nur, wenn eine Ladung da ist,
-der Spieler lebt und er **nicht schon voll** ist (sonst verschwendet man eine Heilung).
+**25 % der Maximal-HP** (Variable `HealFraction`, zuerst 50 %, auf Zuruf halbiert), verbraucht eine
+Ladung und speichert — aber nur, wenn eine Ladung da ist, der Spieler lebt und er **nicht schon voll**
+ist (sonst verschwendet man eine Heilung). Bei 100 HP Grundleben sind das 25 HP, mit Health auf
+Stufe 6 (250 HP) 62.
 
 **Granate.** Neuer Actor `BP_Grenade` (Kugel, 30 uu): fliegt in **0,5 s im Bogen** (180 uu hoch)
 zum Mauszeiger, zündet nach **1,4 s** und macht **150 Schaden im Radius 450** an jedem
@@ -1845,6 +1847,11 @@ Danach `LogNavigation` auf `VeryVerbose`: dort stand, dass `RecastNavMesh-Defaul
 
 **Merksatz:** `SimpleMoveToActor` verschweigt Fehler. Für alles, was nicht auf Anhieb läuft,
 gehört `AI MoveTo` in den Graphen, bis es steht.
+
+**NavMesh neu backen nach dem Umbau der Arena (23.09.).** Nach dem Verkleinern auf 5000 zeigt der
+Editor „NAVMESH NEEDS TO BE REBUILT". Im Spiel stört das nicht — das NavMesh wird beim Start neu
+erzeugt („Recreating dtNavMesh instance …" im Log) —, **für den Build muss es aber gebacken sein.**
+Das Toolset kann keinen Build anstoßen: **Build → Build Paths** in `L_Outside` von Hand.
 
 **Noch offen, aber unkritisch:** Der Fix sitzt an der Actor-Instanz im Level, nicht in
 `DefaultEngine.ini`. Wird das NavMesh je neu erzeugt, ist er weg. Sauberer wäre ein expliziter
