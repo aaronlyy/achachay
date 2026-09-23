@@ -217,6 +217,26 @@ Konsequenzen für die Arbeitsweise:
   Element ohne Index reicht `Utilities|Array|RandomArrayItem`; wo der Index zählt, lieber über
   `Utilities|Array|Length` + `select` rechnen als den Get-Node zu erzwingen.
 
+- **Ein fehlgeschlagener Blueprint-Compile blockiert den ganzen Editor.** Unreal kompiliert vor
+  jedem PIE-Start die geänderten Blueprints; schlägt das fehl, kommt ein **modaler Dialog**
+  („… failed to compile. Play anyway?"). Solange der offen ist, antwortet **kein** MCP-Aufruf mehr,
+  und jeder Call läuft in den Timeout. **Wenn ein Aufruf länger als zwei Minuten hängt:** nicht
+  weiter am Editor rütteln, sondern per Bash `Saved/Logs/achachay.log` lesen — die Datei liegt
+  außerhalb des Editors und verrät die Ursache sofort (`Blueprint failed to compile: <Name>`).
+  Auflösen kann den Dialog nur der Nutzer.
+- **Nach jeder Signaturänderung die Aufrufer selbst kompilieren.** Wird an einer Funktion mit
+  Rückgabewert geschraubt (Return-Knoten neu, Parameter neu), stehen die aufrufenden Blueprints
+  bis zu ihrem nächsten Compile auf einem veralteten Pin. `compile_blueprint` auf die Aufrufer
+  räumt das auf — sonst macht es PIE, und zwar mit dem Dialog von oben.
+- **`add_event` mit einem Namen, der kein Override trifft, legt still ein Custom Event an**, das
+  nie feuert. Der interne Name ist oft ein anderer als im Editor sichtbar: Die GameInstance zeigt
+  „Event Init", intern heißt es **`ReceiveInit`**. Nach `add_event` am `type_id` prüfen:
+  `AddEvent|EventInit` ist der Override, `AddEvent|Custom|Init` ist es nicht.
+- **Engine-Events, die einen `Parent:`-Aufruf brauchen, besser gar nicht überschreiben.** Den
+  Parent-Knoten kann das Toolset nicht anlegen (`find_node_types` kennt ihn nicht), und ein
+  `Event Init` ohne `Parent: Init` überspringt die Subsystem-Initialisierung der GameInstance.
+  Ausweg: eine eigene `EnsureLoaded`-Funktion mit Merker-Bool, gerufen vom ersten Verbraucher.
+
 ### Assets
 
 - **DataTables sind per Toolset voll bedienbar** — `create`, `add_rows`, `set_rows`, `get_rows`,

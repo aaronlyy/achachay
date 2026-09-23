@@ -528,13 +528,46 @@ erzeugen:
 Die Hüllen reichen — Verdrahtung und Zahlen kommen aus der GI, die dafür nötigen Werte
 (`HighestWave`, `TotalKills`, `TotalSeconds`, `RunSeconds`, `Money`, die vier Flags) stehen alle.
 
+### 8. Savegame ✔ (23.09.)
+
+Schritt 12 war am 14.09. auf Wunsch gestrichen und ist am 23.09. auf Wunsch zurückgekommen.
+
+**`SG_Achachay`** (Elternklasse `SaveGame`) hält 17 Felder — alles, was einen Neustart überleben
+soll: `Money`, die sechs Upgrade-Level, `CurrentCaliberId` und `UnlockedCalibers`, `HighestWave`,
+`TotalKills`, `TotalSeconds`, `BestWaveTime` und die vier Erfolgs-Flags. **Nicht** gespeichert wird
+der Run-Zustand (`RunMoney`, `HealCount`, `GrenadeCount`, `MagazineAmmo`, `RunDamage`) — der gehört
+zum laufenden Ausflug, nicht zum Fortschritt.
+
+**Gespeichert wird an jeder Stelle, an der sich Bleibendes ändert:** `SpendMoney` (nur bei
+erfolgreichem Kauf), `UnlockCaliber`, `BankRunMoney` (Extraktion), `ClearRunState` (Tod),
+`NoteWaveCleared` (jede geräumte Welle) und `NoteGameCleared`. Slot heißt `Achachay`, Datei liegt
+unter `Saved/SaveGames/Achachay.sav`.
+
+**Geladen wird faul, nicht über `Event Init`.** Erster Anlauf war ein Override von `Event Init` in
+der GameInstance — **das war ein Fehler und hat den Editor zweimal blockiert.** Ohne den
+`Parent: Init`-Aufruf überspringt so ein Override die Subsystem-Initialisierung, und den
+Parent-Knoten kann das Toolset nicht anlegen. Jetzt gibt es `EnsureLoaded()` mit dem Merker
+`ProgressLoaded`, gerufen von **`GetPlayerStats`** (die erste Abfrage jedes Characters) und von
+**`BP_WaveDirector.BeginPlay`**. Damit ist der Stand geladen, bevor irgendwer ihn liest, und kein
+Engine-Event ist angefasst.
+
+**Was den Editor wirklich blockiert hat**, steht als eigene Lektion in `AGENTS.md`: Ein
+fehlgeschlagener Blueprint-Compile hält PIE mit einem modalen Dialog an, und dann antwortet kein
+MCP-Aufruf mehr. Die Ursache stand im `Saved/Logs/achachay.log`, das sich per Bash auch dann lesen
+lässt, wenn der Editor steht.
+
+**Per PIE geprüft, in zwei Läufen:** Lauf A räumt eine leere Testwelle → `Achachay.sav` entsteht
+(2413 Bytes, GVAS, Klasse `SG_Achachay_C`). Lauf B startet frisch mit zehn Gegnern, räumt also
+nichts — und trotzdem stehen `WaveUnder30`, `WaveUnder10` und `BestWaveTime` **1,0000008** aus
+Lauf A. Der Wert kann nur aus der Datei kommen.
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
 
 | # | Thema | Notiz |
 |---|---|---|
-| B1 | **Savegame** | Schritt 12 war am 14.09. **auf Wunsch gestrichen** und wird jetzt bewusst zurückgeholt. Geld, Upgrades, Kaliber, `HighestWave`, `TotalKills`, Uhren. Die GI hält den Zustand ohnehin an einer Stelle — es ist Speichern und Laden, kein Umbau |
+| ~~B1~~ | ~~**Savegame**~~ | **Erledigt am 23.09.**, siehe Schritt 8 |
 | B2 | **Tank-Gegnertyp** | Kindklasse mit hoher HP, niedrigem Tempo, eigenen Skalierungsfaktoren. Eine Spalte in `DT_Waves` dazu, sonst nichts — das ist der billigste Punkt der Liste |
 | B3 | ~~**Run-Stats & Achievements**~~ | **Datenebene am 23.09. erledigt** (Schritt 4). Offen ist nur noch die Anzeige: Pokalraum, Schritt 5 |
 | B4 | **Meshes und Map** | Der Punkt mit dem größten sichtbaren Effekt — und der einzige, der die Graybox wirklich ersetzt |
