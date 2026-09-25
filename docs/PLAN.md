@@ -813,6 +813,71 @@ Controller-Aim. Weniger Spread beim Schießen. Soll rot leuchten."*
   unsichtbar. Dicke `LaserThickness` 0,06 (= 6 cm).
 - **Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.
 
+### 16. Endgame: Boss-Kern, der Fremde, Railgun und Hintertür (geplant 25.09.)
+
+*„Wenn der Boss fällt, droppt er etwas. Damit gehe ich zu einem NPC im Safehouse, der mir eine
+viel zu starke Waffe gibt und einen Schlüssel, um das Haus nach hinten zu verlassen. Mit der
+Waffe kann ich weiterspielen, mit dem Schlüssel verlasse ich das Spiel und lande im Hauptmenü."*
+
+**Entscheidungen (25.09., Nutzer):**
+- Die Waffe ist ein **siebtes Kaliber**, keine eigene Waffe
+- Der Kern ist **Run-Beute**: Stirbst du vor dem Safehouse, ist er weg, und der Boss droppt beim
+  nächsten Sieg erneut
+- Hintertür → **Endscreen, dann Hauptmenü**. Der Fortschritt bleibt erhalten
+- NPC: **Platzhalterfigur, die herumläuft**. Das Mesh kann später getauscht werden
+
+#### Der Ablauf
+
+```
+Boss fällt ─▶ Kern liegt am Boden ─▶ aufheben (RunHasCore)
+                                        │  Tod ─▶ weg
+                                        ▼
+                 Safehouse-Tür ─▶ HasCore (gespeichert)
+                                        ▼
+         NPC ansprechen ─▶ Railgun freigeschaltet + Hintertür-Schlüssel
+                     ┌──────────────────┴──────────────────┐
+                     ▼                                     ▼
+          rausgehen, weiterspielen              Hintertür ─▶ Endscreen ─▶ Hauptmenü
+```
+
+#### Bausteine
+
+| # | Was | Wo | Wer |
+|---|---|---|---|
+| 1 | **Datenebene:** `RunHasCore` (Run-Zustand, `ClearRunState` löscht ihn), `HasCore`, `CoreTraded`, `HasBackKey` (alle drei im Savegame) | `GI_Achachay`, `SG_Achachay`, `SaveProgress`/`LoadProgress` | Toolset |
+| 2 | **Kern einbuchen:** Beim Durchgehen der Safehouse-Tür wird `RunHasCore` zu `HasCore`, wie Run-Geld | `BP_SafehouseDoor.DoExtract` | Toolset |
+| 3 | **Pickup `BP_BossCore`:** Kind von `StaticMeshActor`, Kugel mit Magenta-Glühen (`MI_Boss`), schwebt und dreht sich. Einsammeln beim Drüberlaufen: `RunHasCore`, Kauf-Sound, Banner | `Art/…`, neuer BP | Toolset |
+| 4 | **Drop:** Neue Variable `DeathDrop` (Klasse) an `BP_EnemyBase`. `PayoutAndDie` spawnt sie am Todesort, falls gesetzt **und** weder `HasCore` noch `CoreTraded` gilt. Am Boss-CDO auf `BP_BossCore` | `BP_EnemyBase`, `BP_EnemyBoss` | Toolset |
+| 5 | **Railgun:** `DA_50BMG` duplizieren → `DA_Railgun` (Id `Railgun`). Schaden 400, Magazin 30, Feuerrate 6, Nachladen 1,0 s, Durchschlag 10, Streuung 0, Tracer weiß-türkis. In `BP_Weapon.AllCalibers` anhängen. **Keine** Waffenbank, nur der NPC schaltet sie frei | `Weapon/Calibers`, `BP_Weapon` | Toolset |
+| 6 | **NPC `BP_Stranger`:** Character mit Mesh-Komponente `Body` (`SM_Character`, eigene `MI_Stranger`) und Interface `BPI_Interactable` | neuer BP | **Nutzer** (anlegen, Komponente, Interface) |
+| 7 | **NPC-Verhalten:** Alle 4–7 s ein zufälliger erreichbarer Punkt im Umkreis von 900 per `AI MoveTo`. Steht der Spieler näher als 300: anhalten und zu ihm drehen | `BP_Stranger` | Toolset |
+| 8 | **NPC-Dialog über den Prompt:** ohne Kern „Bring mir, was der Boss bei sich trägt." · mit Kern „[E] Kern übergeben" · danach „Die Tür hinten ist jetzt offen." Beim Übergeben: `UnlockCaliber("Railgun")`, `HasBackKey`, `CoreTraded`, speichern, Juice mit Kauf-Sound | `BP_Stranger.GetPrompt`/`Interact` | Toolset |
+| 9 | **NavMesh im Safehouse:** `NavMeshBoundsVolume` über den Loft (3000×3000). Danach **Build Paths** | `L_Safehouse` | Toolset setzt das Volume, **Nutzer** backt |
+| 10 | **Hintertür `BP_BackDoor`:** Duplikat von `BP_ExitDoor`, an die Südwand. Prompt ohne Schlüssel „Verschlossen.", mit Schlüssel „[E] Das Haus für immer verlassen" → Endscreen | neuer BP (Duplikat), `L_Safehouse` | Toolset |
+| 11 | **Endscreen:** Wie der Todesscreen blendet er ein und aus. Titel „DU BIST ENTKOMMEN", darunter Laufzeit gesamt, Kills, höchste Welle. Nach etwa 6 s `TravelTo("L_Menu")` | `WBP_EndScreen` | **Nutzer** baut das Widget (`T_Title`, `T_Stats`), Toolset verdrahtet |
+| 12 | **Test:** Boss per Test-CDO auf 1 HP, Welle 10 als Startwelle → Kern, Tod-Fall, Extraktion, Tausch, Railgun, Hintertür, Menü. Danach alle Testwerte zurück | — | beide |
+
+#### Was der Nutzer beisteuern muss
+
+1. **`BP_Stranger`** unter `Content/Achachay/Safehouse/`: Rechtsklick → Blueprint Class → **Character**
+   - Komponente **Static Mesh**, Name `Body`, Mesh `SM_Character`, an die Kapsel gehängt
+   - *Class Settings → Interfaces → Add* → `BPI_Interactable`
+2. **`WBP_EndScreen`** unter `UI/`: Vollbild-Canvas, `T_Title` und `T_Stats` (beide „Is Variable")
+3. Nach Schritt 9: **Build → Build Paths** in `L_Safehouse`
+4. Optional: eigene Meshes für Kern, NPC und Hintertür
+
+#### Reihenfolge
+
+Zuerst **1–5** (Kern und Railgun, ohne Zutun des Nutzers testbar). Parallel legt der Nutzer
+`BP_Stranger` und `WBP_EndScreen` an. Danach **6–11**, zum Schluss **12**.
+
+#### Offene Detailfragen (mit Vorschlag, klären beim Bauen)
+
+- **Railgun beim Weiterspielen:** Wechseln wie jedes Kaliber über den Kaliberwechsel. Der Kern
+  droppt nach dem Tausch nicht mehr, der Boss bleibt aber Boss
+- **Hintertür nach dem Endscreen:** Der Schlüssel bleibt. Man kann jederzeit wieder zum Menü raus
+- **Pokal:** Ein fünftes Podest „Entkommen" wäre eine Zeile in `GetFlag`, **optional**
+
 ### Aufräumen vor dem Build (Review, 25.09.)
 
 Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-Build durchgehen.
