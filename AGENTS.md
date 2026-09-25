@@ -312,6 +312,10 @@ Konsequenzen für die Arbeitsweise:
   Post-Process-Volumes **nur `AutoExposureBias`** verschieben. Min/Max-EV zu überschreiben schaltet die
   Adaption ein und hellt dunkle Szenen um Blendenstufen auf (26.09. im Menü passiert). Sky-Light-Stärke
   in allen Levels 0,15 — das Menü stand auf 1,0 mit altem Tageshimmel-Capture.
+- **Lichteinheit ist Candela** (`r.DefaultFeature.LightUnits=1`). Punktlichter liegen hier bei
+  10–100, nicht bei Tausenden (Lumen-Werte). 3000–9000 im Menü haben alles überstrahlt; der Nutzer hat
+  sie auf 10 gesetzt. Ausnahme, historisch gewachsen und vom Nutzer abgenommen: Safehouse-Lampen
+  (`BaseIntensity` 5000–7000) und `FillLight` 2500 — vor Änderungen dort erst nachfragen.
 
 ### Assets
 
