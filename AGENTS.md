@@ -279,6 +279,33 @@ Konsequenzen für die Arbeitsweise:
   hatte `self` vom Typ **BP_EnemyBase** — beide Klassen haben eine Variable `Health`. Bei allem,
   was Typen betrifft: `get_node_infos` und den Pin-Typ ansehen, nicht die DSL-Ausgabe.
 
+- **Widget-Fallen (25.09.):** `Class|Factory|SetText` — so zeigt `read_graph_dsl` TextBlock-`SetText` an —
+  ist beim Schreiben ein Property-Setter auf der Klasse *Factory*. Für TextBlocks
+  `Widget|SetText(Text)` per `create_node`. `Button|Event|AssignOnClicked` legt Custom Events an, die
+  alle `OnClicked_Event` heißen (ab dem zweiten Compile-Fehler, umbenennen geht nicht) — stattdessen
+  `Button|Event|BindEventtoOnClicked` + `EventDispatchers|CreateEvent` + `set_create_event_function`.
+  Delegates mit `float`-Parameter (Slider `OnValueChanged`) lassen sich so **nicht** binden: das
+  Toolset legt nur `double`-Parameter an. Das bindet der Nutzer im Designer (*Events → +*).
+  `add_component_bound_event` nimmt keine Widgets.
+- **`Settings|GetGameUserSettings` ist impure** (hat Exec-Pins). Als reiner Datenknoten verdrahtet
+  liefert er nichts und der Compile meldet „Target must have a connection".
+- **`add_object_variable` mit Engine-Klasse** (`/Script/Engine.GameUserSettings`) legte still eine
+  **Integer**-Variable an. Pin-Typ des Getters nach dem Anlegen prüfen.
+- **`==` zwischen Enum und Literal** löst im DSL auf den Integer-Vergleich auf und scheitert. Für
+  Enums den `Switch on E<Name>`-Knoten per `create_node` nehmen.
+- **`Game|Damage|ApplyDamage` beim Schreiben ist die Engine-Funktion**, nicht `BPC_Health.ApplyDamage`
+  (obwohl die DSL diese so anzeigt). Explizit `Class|BPCHealth|ApplyDamage :self … :Amount …`.
+- **`StartPIE` meldet „PIE ended before warmup", obwohl PIE läuft**, wenn der Editor im Hintergrund
+  gedrosselt ist (`max tick rate 3` im Log). `IsPIERunning` fragen. Objekte der PIE-Welt sind über
+  `find_actors`/`get_properties` nicht erreichbar.
+- **Hängende alte Editor-Instanz:** Ein Editor, der in „Preparing to exit" steckt, hält den MCP-Port.
+  Jeder Aufruf läuft dann in den Timeout, auch wenn der neue Editor offen ist. `Get-Process
+  UnrealEditor*` zeigt zwei Instanzen; die alte muss weg. Der neue Editor loggt dann nach
+  `achachay_2.log`.
+- **Knoten zählen nie über `read_graph_dsl`-Text.** Am 25.09. hat ein Scan, der die DSL-Ausgabe nach
+  `GetDataTableRow` durchsuchte, „27 Aufrufe" gemeldet — es war **einer**, nur 27× inline gerendert.
+  Für Zählungen immer `find_nodes` + `get_node_infos`.
+
 ### Assets
 
 - **DataTables sind per Toolset voll bedienbar** — `create`, `add_rows`, `set_rows`, `get_rows`,
