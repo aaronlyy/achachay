@@ -308,6 +308,11 @@ Konsequenzen für die Arbeitsweise:
 
 - **Tote Kopie hat einen echten Bug verursacht (26.09.).** `WBP_HUD.GetPromptText` enthielt den Rumpf zweimal; ein Einschub landete in der toten Kopie und wirkte nie. Vor jedem Einschub in einen fremden Graph: **Erreichbarkeit vom `FunctionEntry` prüfen** (Exec vorwärts, danach Daten-Pins rückwärts) und nur in lebende Nodes einhängen. Der Scan steht als Skript-Muster in der Sitzung vom 26.09.; tote Nodes lassen sich gefahrlos löschen, wenn die DSL-Ausgabe vorher und nachher gleich ist.
 
+- **Feste Belichtung im Projekt.** `r.DefaultFeature.AutoExposure=False` (DefaultEngine.ini). In
+  Post-Process-Volumes **nur `AutoExposureBias`** verschieben. Min/Max-EV zu überschreiben schaltet die
+  Adaption ein und hellt dunkle Szenen um Blendenstufen auf (26.09. im Menü passiert). Sky-Light-Stärke
+  in allen Levels 0,15 — das Menü stand auf 1,0 mit altem Tageshimmel-Capture.
+
 ### Assets
 
 - **DataTables sind per Toolset voll bedienbar** — `create`, `add_rows`, `set_rows`, `get_rows`,
