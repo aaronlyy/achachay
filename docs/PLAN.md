@@ -834,7 +834,7 @@ Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-B
 | `BP_PlayerCharacter.EquipWeapon` | `PrintString` im Fehlerzweig | Darf bleiben (wird im Shipping-Build ohnehin entfernt) |
 | ✔ `BP_EnemyBase.ApplyWaveScaling` | 31 Knoten, seit 22.09. von `ApplyWaveProfile` ersetzt, **nirgends aufgerufen** | Funktion löschen |
 | ✔ `BP_WaveDirector` | 10 Variablen der alten Formel (`BaseCount`, `CountPerWave`, `NextWaveDelay`, `HealthPerWave`, `SpeedPerWave`, `ShooterStartWave`, `ShooterEvery`, `RusherStartWave`, `RusherEvery`, `RewardMulPerWave`) — **nirgends gelesen** | Variablen löschen |
-| `BP_WaveDirector.StartWave` | `GetDataTableRow` wird **27×** ausgewertet (Pure-Node-Neuauswertung, §3 AGENTS.md), größter Graph im Projekt | Zeile einmal in eine `S_WaveRow`-Variable lesen, danach nur noch deren Felder. Spart grob die Hälfte der Knoten |
+| ~~`BP_WaveDirector.StartWave`~~ | **Fehlalarm.** Der Scan zählte Zeilen der DSL-Ausgabe, und die rendert einen Knoten mit mehrfach genutzten Ausgängen an jeder Verwendungsstelle neu (AGENTS.md §3). Per `find_nodes` geprüft: **ein** `GetDataTableRow`, **ein** `BreakSWaveRow` mit 15 Abnehmern, 55 Knoten | Nichts zu tun |
 | ✔ `BP_Grenade.Explode` | Abstand zu Hand aus x/y-Differenzen gerechnet (Pure-Kette mit 8× `GetActorLocation`) | `GetHorizontalDistanceTo` — ein Knoten |
 | ✔ `BP_PlayerCharacter.HandleDeath` | Zweig „Is Not Valid" dupliziert den Timer, die GI ist immer gültig | Zweig entfernen |
 | ✔ `L_Outside` | `BP_TestTarget` (Übungspuppe vom 15.09.) steht noch im Level | Aus dem Level löschen; Asset und `BP_TestInteractable` danach löschen, wenn nichts mehr darauf zeigt |
