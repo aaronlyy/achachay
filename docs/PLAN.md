@@ -819,8 +819,8 @@ Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-B
 
 | Wo | Jetzt | Sauber |
 |---|---|---|
-| `BP_EnemyBoss` | `ApplyBossLook` setzt `M_Enemy` + Farben zur Laufzeit, weil das geerbte `Body`-Override das Material verliert und das Toolset Komponenten-Overrides nicht schreiben kann | Im Boss-BP die geerbte `Body`-Komponente wählen und das Material direkt setzen (am besten eine `MI_Boss` von `M_Enemy` mit den Farben). Danach `ApplyBossLook` samt Aufruf löschen |
-| `WBP_Settings` | `SyncSliders` liest alle drei Slider **jeden Tick** und ruft `ApplyVolume`. Grund: `Create Event` braucht eine `float`-Signatur, das Toolset legt nur `double` an | Pro Slider im Designer *Events → On Value Changed* (+). Im Event `Set<Master/Music/Sfx>Volume` an der GI + `ApplyVolume`. Danach `SyncSliders` und den Tick-Aufruf löschen |
+| ✔ `BP_EnemyBoss` | `ApplyBossLook` setzt `M_Enemy` + Farben zur Laufzeit, weil das geerbte `Body`-Override das Material verliert und das Toolset Komponenten-Overrides nicht schreiben kann | Im Boss-BP die geerbte `Body`-Komponente wählen und das Material direkt setzen (am besten eine `MI_Boss` von `M_Enemy` mit den Farben). Danach `ApplyBossLook` samt Aufruf löschen |
+| ✔ `WBP_Settings` | `SyncSliders` liest alle drei Slider **jeden Tick** und ruft `ApplyVolume`. Grund: `Create Event` braucht eine `float`-Signatur, das Toolset legt nur `double` an | Pro Slider im Designer *Events → On Value Changed* (+). Im Event `Set<Master/Music/Sfx>Volume` an der GI + `ApplyVolume`. Danach `SyncSliders` und den Tick-Aufruf löschen |
 | `WBP_Menu` / `WBP_Pause` / `WBP_Settings` (Buttons) | Buttons per `Bind Event to OnClicked` + `Create Event` im Construct gebunden (Toolset kann keine Widget-Events anlegen). Funktioniert | Optional: pro Button *Events → On Clicked* (+), vorhandenen `Do*`-Aufruf daranhängen, **danach die Bind-/Create-Event-Knoten im Construct löschen** — sonst feuert jeder Klick doppelt |
 | `M_Blue` | Heißt noch „Blue", ist aber seit 25.09. der Stations-Look (Stahl + Bernstein-Rand) | Umbenennen in `M_Station` (Rechtsklick → Rename), danach *Fix Up Redirectors* im Ordner |
 | `PC_Outside` / `PC_Safehouse` | Beide haben eigene Kopien von `AddMappingContext`, `StoreEssentialVariables`, `ShowHUD`, `TogglePause` und der Einblende. `PC_Outside` ruft sogar `Class|PCSafehouse|ShowHUD` | Gemeinsame Elternklasse `PC_Achachay` (BP von PlayerController), beide per *File → Reparent Blueprint* darauf, die doppelten Funktionen in die Elternklasse. Optional, eher Phase B |
@@ -829,15 +829,15 @@ Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-B
 
 | Wo | Befund | Maßnahme |
 |---|---|---|
-| `BP_PlayerCharacter.DebugOverlay` | 44 Knoten, baut **jeden Frame** einen String und schreibt ihn per PrintString — der Grund für die Log-Flut (Hunderttausende Zeilen) | Aufruf im Tick entfernen, Funktion löschen |
-| `PC_Outside.AddMappingContext` | `PrintString "Added"` | Knoten entfernen |
+| ✔ `BP_PlayerCharacter.DebugOverlay` | 44 Knoten, baut **jeden Frame** einen String und schreibt ihn per PrintString — der Grund für die Log-Flut (Hunderttausende Zeilen) | Aufruf im Tick entfernen, Funktion löschen |
+| ✔ `PC_Outside.AddMappingContext` | `PrintString "Added"` | Knoten entfernen |
 | `BP_PlayerCharacter.EquipWeapon` | `PrintString` im Fehlerzweig | Darf bleiben (wird im Shipping-Build ohnehin entfernt) |
-| `BP_EnemyBase.ApplyWaveScaling` | 31 Knoten, seit 22.09. von `ApplyWaveProfile` ersetzt, **nirgends aufgerufen** | Funktion löschen |
-| `BP_WaveDirector` | 10 Variablen der alten Formel (`BaseCount`, `CountPerWave`, `NextWaveDelay`, `HealthPerWave`, `SpeedPerWave`, `ShooterStartWave`, `ShooterEvery`, `RusherStartWave`, `RusherEvery`, `RewardMulPerWave`) — **nirgends gelesen** | Variablen löschen |
+| ✔ `BP_EnemyBase.ApplyWaveScaling` | 31 Knoten, seit 22.09. von `ApplyWaveProfile` ersetzt, **nirgends aufgerufen** | Funktion löschen |
+| ✔ `BP_WaveDirector` | 10 Variablen der alten Formel (`BaseCount`, `CountPerWave`, `NextWaveDelay`, `HealthPerWave`, `SpeedPerWave`, `ShooterStartWave`, `ShooterEvery`, `RusherStartWave`, `RusherEvery`, `RewardMulPerWave`) — **nirgends gelesen** | Variablen löschen |
 | `BP_WaveDirector.StartWave` | `GetDataTableRow` wird **27×** ausgewertet (Pure-Node-Neuauswertung, §3 AGENTS.md), größter Graph im Projekt | Zeile einmal in eine `S_WaveRow`-Variable lesen, danach nur noch deren Felder. Spart grob die Hälfte der Knoten |
-| `BP_Grenade.Explode` | Abstand zu Hand aus x/y-Differenzen gerechnet (Pure-Kette mit 8× `GetActorLocation`) | `GetHorizontalDistanceTo` — ein Knoten |
-| `BP_PlayerCharacter.HandleDeath` | Zweig „Is Not Valid" dupliziert den Timer, die GI ist immer gültig | Zweig entfernen |
-| `L_Outside` | `BP_TestTarget` (Übungspuppe vom 15.09.) steht noch im Level | Aus dem Level löschen; Asset und `BP_TestInteractable` danach löschen, wenn nichts mehr darauf zeigt |
+| ✔ `BP_Grenade.Explode` | Abstand zu Hand aus x/y-Differenzen gerechnet (Pure-Kette mit 8× `GetActorLocation`) | `GetHorizontalDistanceTo` — ein Knoten |
+| ✔ `BP_PlayerCharacter.HandleDeath` | Zweig „Is Not Valid" dupliziert den Timer, die GI ist immer gültig | Zweig entfernen |
+| ✔ `L_Outside` | `BP_TestTarget` (Übungspuppe vom 15.09.) steht noch im Level | Aus dem Level löschen; Asset und `BP_TestInteractable` danach löschen, wenn nichts mehr darauf zeigt |
 
 **Phase B (zu groß für heute):** `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` (48 + 64 Knoten, sechsfache
 `if`-Kette über Namen) → eine `Map<Name,int> UpgradeLevels`. Berührt das Savegame, deshalb nicht vor der Abgabe.
