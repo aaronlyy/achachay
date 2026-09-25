@@ -904,6 +904,8 @@ Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-B
 | ✔ `BP_PlayerCharacter.HandleDeath` | Zweig „Is Not Valid" dupliziert den Timer, die GI ist immer gültig | Zweig entfernen |
 | ✔ `L_Outside` | `BP_TestTarget` (Übungspuppe vom 15.09.) steht noch im Level | Aus dem Level löschen; Asset und `BP_TestInteractable` danach löschen, wenn nichts mehr darauf zeigt |
 
+**Tote Kopien (Scan 26.09.):** Nodes, die weder vom Funktionseingang noch von einem Event per Exec erreichbar sind — Reste früherer DSL-Rewrites. In `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` und `BP_WaveDirector.GetSpawnTransform` gelöscht (53 Nodes, DSL vorher = nachher). **Offen:** `BP_Projectile` (`HandleHit` 25/35, `MoveStep` 14/28, EventGraph 10/21) und `WBP_HUD.RefreshInteractPrompt` (27/33, u. a. `LogString`) — beide hatten ungespeicherte Nutzeränderungen, deshalb nicht angefasst.
+
 **Phase B (zu groß für heute):** `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` (48 + 64 Knoten, sechsfache
 `if`-Kette über Namen) → eine `Map<Name,int> UpgradeLevels`. Berührt das Savegame, deshalb nicht vor der Abgabe.
 

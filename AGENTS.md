@@ -306,6 +306,8 @@ Konsequenzen für die Arbeitsweise:
   `GetDataTableRow` durchsuchte, „27 Aufrufe" gemeldet — es war **einer**, nur 27× inline gerendert.
   Für Zählungen immer `find_nodes` + `get_node_infos`.
 
+- **Tote Kopie hat einen echten Bug verursacht (26.09.).** `WBP_HUD.GetPromptText` enthielt den Rumpf zweimal; ein Einschub landete in der toten Kopie und wirkte nie. Vor jedem Einschub in einen fremden Graph: **Erreichbarkeit vom `FunctionEntry` prüfen** (Exec vorwärts, danach Daten-Pins rückwärts) und nur in lebende Nodes einhängen. Der Scan steht als Skript-Muster in der Sitzung vom 26.09.; tote Nodes lassen sich gefahrlos löschen, wenn die DSL-Ausgabe vorher und nachher gleich ist.
+
 ### Assets
 
 - **DataTables sind per Toolset voll bedienbar** — `create`, `add_rows`, `set_rows`, `get_rows`,
