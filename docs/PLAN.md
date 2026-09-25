@@ -813,6 +813,14 @@ Controller-Aim. Weniger Spread beim Schießen. Soll rot leuchten."*
   unsichtbar. Dicke `LaserThickness` 0,06 (= 6 cm).
 - **Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.
 
+### Aufräumen vor dem Build (Review, 25.09.)
+
+Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-Build durchgehen.
+
+| Wo | Jetzt | Sauber |
+|---|---|---|
+| `BP_EnemyBoss` | `ApplyBossLook` setzt `M_Enemy` + Farben zur Laufzeit, weil das geerbte `Body`-Override das Material verliert und das Toolset Komponenten-Overrides nicht schreiben kann | Im Boss-BP die geerbte `Body`-Komponente wählen und das Material direkt setzen (am besten eine `MI_Boss` von `M_Enemy` mit den Farben). Danach `ApplyBossLook` samt Aufruf löschen |
+
 ### Phase B — nach der Abgabe
 
 Nach Aufwand sortiert, nicht nach Reiz:
