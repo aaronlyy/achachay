@@ -2287,7 +2287,9 @@ Editor „NAVMESH NEEDS TO BE REBUILT". Im Spiel stört das nicht — das NavMes
 erzeugt („Recreating dtNavMesh instance …" im Log) —, **für den Build muss es aber gebacken sein.**
 Das Toolset kann keinen Build anstoßen: **Build → Build Paths** in `L_Outside` von Hand.
 
-**Noch offen, aber unkritisch:** Der Fix sitzt an der Actor-Instanz im Level, nicht in
+**Am 26.09. in die Config gezogen:** Im gepackten Spiel liefen die Gegner draußen nicht. In `L_Outside.umap` war `AgentHeight` in keiner Version gespeichert, der Instanz-Fix hat also nie gehalten. Jetzt stehen `SupportedAgents` (Radius 42, Höhe 192) und die `RecastNavMesh`-Defaults in `DefaultEngine.ini` — danach Editor neu starten, in allen drei Leveln Build Paths, speichern, neu packen.
+
+**Früherer Stand:** Der Fix sitzt an der Actor-Instanz im Level, nicht in
 `DefaultEngine.ini`. Wird das NavMesh je neu erzeugt, ist er weg. Sauberer wäre ein expliziter
 `SupportedAgents`-Eintrag in der Config — der braucht aber einen Editor-Neustart und hätte den
 gerade funktionierenden Zustand blind verändert. Beim nächsten ohnehin fälligen Neustart nachziehen.
