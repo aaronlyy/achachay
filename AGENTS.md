@@ -255,6 +255,11 @@ Konsequenzen für die Arbeitsweise:
   daran hing, in der Luft. Nach `set_parent` unverbundene `self`-Pins des betroffenen Typs suchen und
   an einen neuen (geerbten) Getter hängen — **vor** dem Compile, sonst bricht das Skript ab.
   Funktionsaufrufe dagegen lösen sich nach dem Umhängen über den Namen von selbst auf.
+- **`set_pin_value` markiert das Asset nicht als geändert.** `save_assets` meldet danach `true`,
+  schreibt aber nichts — die Änderung lebt nur im Editor und fehlt im Commit und im Build (26.09.:
+  Tür-Texte). Nach reinen Pin-Änderungen `is_dirty` prüfen; wenn `false`, eine CDO-Eigenschaft
+  kurz ändern und zurücksetzen (markiert das Paket), dann speichern. Kontrolle: `git status` bzw.
+  Datei-Zeitstempel.
 - **CaptureViewport zeigt im PIE die Editor-Welt**, nicht das Spiel. Für Spielbilder
   `CaptureEditorImage` — das braucht aber gut 10 s; für zeitkritische Tests ungeeignet.
 - **Test-Gegner im PIE töten den Spieler — und der Tod speichert.** Am 26.09. einen Boss und einen
