@@ -923,6 +923,11 @@ direkt ins Menü. Sonst werden das Flag gesetzt (nur Sitzung, nicht im Savegame)
 Space/Enter/LMB/Esc/Gamepad-A sofort zu `EndIntro`, das `IntroActive` prüft, das Widget entfernt
 und `ShowMenu` ruft.
 
+**Nachtrag 26.09.:** `GI.DoTravel` setzt `IntroShown` bei **jedem** Levelwechsel. Vorher kam das
+Intro erneut, wenn man z. B. im Safehouse startete und über die Hintertür ins Menü ging. Jetzt
+läuft es nur beim ersten Menü nach dem Spielstart. Credits nach der Hintertür: 6 s → 3 s
+(`ShowCredits`).
+
 **Per PIE geprüft:** Intro sichtbar, nach dem Timer steht das Menü. Das Überspringen per Taste ist
 nicht per PIE geprüft (Tastendruck ist über das Toolset nicht auslösbar).
 
