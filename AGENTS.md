@@ -250,6 +250,11 @@ Konsequenzen für die Arbeitsweise:
 - **Default am Eltern-CDO erreicht die Kind-CDOs nicht.** Neue Variable in `BP_InteractStation`,
   Default dort auf 70 gesetzt → an `BP_Workbench` & Co. stand weiter 0 (26.09.). Nach dem Setzen
   die Kind-CDOs lesen und bei Bedarf einzeln setzen.
+- **Test-Gegner im PIE töten den Spieler — und der Tod speichert.** Am 26.09. einen Boss und einen
+  Schützen testweise vor den Spawn gestellt: nach 4 s tot, `ClearRunState` hat Heilungen und
+  Granaten im **echten** Spielstand genullt (`Saved/SaveGames/Achachay.sav`, nicht in Git, kein
+  Backup). Vor jedem Kampftest: `.sav` nach `$CLAUDE_JOB_DIR/tmp` kopieren und danach
+  zurückkopieren — oder im Simulate-Modus testen (kein Spieler).
 - **Neu angelegte Variablen sind nicht Instance Editable.** Im Level sind sie am Actor damit weder
   sicht- noch einstellbar, und `set_properties` auf die Instanz scheitert mit „could not be set".
   Für alles, was getunt werden soll: `set_variable_instance_editable`.
