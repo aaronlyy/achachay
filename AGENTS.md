@@ -49,6 +49,18 @@ Konsequenzen für die Arbeitsweise:
 - **`Config/DefaultInput.ini` enthält keine Bindings**, nur `AxisConfig` (Deadzones, Sensitivity).
   Alle Bindings laufen über Enhanced Input.
 - Der Spieler-Character nutzt einen **StaticMesh** (`characterMesh`), kein Skeletal Mesh.
+- **Kamera-Begrenzung über den Tag `CameraBounds`** (26.09.). Der Boden jedes spielbaren Levels trägt
+  ihn; `BP_PlayerCharacter.InitCameraBounds` liest dessen Bounds und stellt den SpringArm auf absolute
+  Location. `UpdateCameraClamp` zoomt jeden Tick so weit, dass das Bild ins Feld passt (Safehouse
+  dadurch näher als Outside), und setzt den Arm auf die Spielerposition, begrenzt um die halbe
+  sichtbare Fläche. Neues Level oder neuer Boden **ohne** den Tag → Kamera folgt wie früher.
+- **Ortho-Kamera: zwei Fallen (26.09., per Projektion im PIE gemessen).**
+  1. `bAutoCalculateOrthoPlanes = true` (Engine-Default) zentriert das Bild **auf das View Target**,
+     egal wo die Kamerakomponente steht — jede Kamera-Begrenzung wirkt dann nicht. Am `Camera`-Template
+     des Characters steht es deshalb auf `false`.
+  2. `OrthoWidth` ist hier die **Bildhöhe**, nicht die Breite: sichtbare Breite = OrthoWidth ×
+     Seitenverhältnis, sichtbare Bodentiefe = OrthoWidth / sin 60°. Wer Sichtfelder rechnet, erst messen
+     (`ProjectWorldToScreen` auf einen bekannten Punkt, per `PrintString` ins Log).
 - **SaveGame: am 14.09. gestrichen, am 23.09. zurückgeholt.** `SG_Achachay`, `SaveProgress` und
   `LoadProgress` existierten am 14.09. und wurden auf Wunsch des Nutzers entfernt (Schritt 12).
   **Am 23.09. hat der Nutzer ausdrücklich danach gefragt** — es steht als B1 im Fahrplan. Bis es
