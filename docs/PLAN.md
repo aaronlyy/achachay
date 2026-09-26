@@ -1057,7 +1057,21 @@ Fehlerfall, fällt im Shipping-Build ohnehin weg).
 `DoWindowMode`, `DoQuality`). Ein Knoten zeigt auf sie nicht — sie hängen an einem String bzw.
 Delegate. **Nicht löschen.**
 
-#### Schritt 3 — Große Funktionen aufteilen
+#### Schritt 3 — Große Funktionen aufteilen (teilweise ✔, 26.09.)
+
+**Erledigt:** `BP_SupplyBox.TryBuy` → `TryBuyLaser` / `TryBuyConsumable` (34 → 7 Knoten);
+`BP_InteractStation.SetIconShape` ersetzt fünf Setter in jedem `BuildIcon`;
+`BP_EnemyBase.SpawnEnemyShot(Dir, Offset, Speed, Damage, Size)` für `FireShot` (26 → 17) und
+`FireRing` (54 → 36); `BP_Grenade`-Tick → `UpdateFlight` (gleiche Knotenzahl — die „sechsfache
+Neuberechnung" war ein Darstellungseffekt der DSL, der Graph teilte die Knoten schon).
+
+**Bewusst nicht:** `BP_WaveDirector.StartWave` — linear (Zeile lesen, Variablen setzen); die Größe
+kommt vom einen `BreakSWaveRow` mit 15 Abnehmern, ein Neuschreiben ginge durch DataTable- und
+Klammer-Knoten für wenig Gewinn. `BP_PlayerCharacter.UpdateCameraClamp` — abgenommene
+Kamera-Mathematik, Umbau = Risiko ohne spielbaren Nutzen.
+
+**Nebenfund:** `PC_Safehouse.PlaceAtEntry` würfelt `RandomArrayItem` zweimal (Position und
+Rotation getrennt). Harmlos, solange es pro Tag nur einen Spawnpunkt gibt.
 
 Kandidaten nach Knotenzahl, mit Vorschlag für die Teilfunktionen:
 
@@ -1076,7 +1090,15 @@ Kandidaten nach Knotenzahl, mit Vorschlag für die Teilfunktionen:
 Enthält eine Funktion Klammer-Knoten (`ToString(Integer)`, `SetText(Text)` …), wird sie als DSL-Rumpf
 plus `create_node` neu gebaut (AGENTS.md §3). Nach jedem Umbau Knoten zählen und tote Kopien löschen.
 
-#### Schritt 4 — Doppelten Code zusammenlegen
+#### Schritt 4 — Doppelten Code zusammenlegen ✔ (26.09.)
+
+**Erledigt:** `PC_Achachay` (Elternklasse `PlayerController`) hält `GI`, `ControlledCharacter`,
+`CacheGI`, `StoreEssentialVariables`, `AddMappingContext`, `ShowHUD`, `TogglePause`.
+`PC_Outside` und `PC_Safehouse` sind per `set_parent` umgehängt, ihre Kopien gelöscht. Die
+Aufruf-Knoten haben sich über den Namen auf die Elternklasse aufgelöst.
+**Falle dabei:** `remove_variable` löscht die Getter-Knoten mit — alle Knoten, die ihr Ziel aus
+`Get GI`/`Get ControlledCharacter` bekamen, hingen danach in der Luft (Compile-Fehler). Nach dem
+Umhängen unverbundene `self`-Pins vom Typ GI/Pawn/Character suchen und an geerbte Getter hängen.
 
 - **`PC_Achachay`** als gemeinsame Elternklasse von `PC_Outside` und `PC_Safehouse`
   (`BlueprintTools.set_parent` kann umhängen). Nach oben wandern `AddMappingContext`,
