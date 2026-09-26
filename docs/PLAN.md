@@ -938,12 +938,29 @@ nicht per PIE geprüft (Tastendruck ist über das Toolset nicht auslösbar).
 
 | Schritt | Text | abgehakt durch |
 |---|---|---|
-| 0 | WASD / LEFT STICK - MOVE | `WBP_HUD.RefreshTutorial`: Spieler > 200 uu/s |
-| 1 | … AIM … SHOOT | `BP_Weapon.Fire` nach `ShotFeedback` |
-| 2 | WALK TO THE DOOR AND PRESS [E] … | `RefreshTutorial`: `Director` gültig (= draußen) |
-| 3 | KILL THE ENEMIES … | `GI.NoteKill` |
-| 4 | WAVE CLEARED? RUN BACK … | `GI.BankRunMoney` (Extraktion) |
-| 5 | SPEND YOUR MONEY … | `GI.SpendMoney`, erfolgreicher Kauf → `TutorialDone`, speichern |
+| 0 | WASD - MOVE | `WBP_HUD.RefreshTutorial`: Spieler > 200 uu/s |
+| 1 | MOUSE - AIM / LEFT MOUSE - SHOOT | **Klick**: IA_Fire hinter `FireWeapon` (zusätzlich weiter `BP_Weapon.Fire`) |
+| 2 | R - RELOAD | `BP_PlayerCharacter`, IA_Reload hinter `ReloadWeapon` |
+| 3 | SPACE - DASH | `PC_Safehouse`/`PC_Outside`, IA_Dash hinter `StartDash` |
+| 4 | F - HEAL | IA_UseHeal hinter `UseHeal` |
+| 5 | E - INTERACT | IA_Interact hinter `TryInteract` |
+| 6 | RIGHT DOOR - GO OUTSIDE / LEFT DOOR - ESCAPE | `RefreshTutorial`: `Director` gültig (= draußen) |
+| 7 | KILL THE ENEMIES … | `GI.NoteKill` |
+| 8 | WAVE CLEARED? RUN BACK … | `GI.BankRunMoney` (Extraktion) |
+| 9 | SPEND YOUR MONEY … | `GI.SpendMoney`, erfolgreicher Kauf → `TutorialDone` (Schwelle 10), speichern |
+
+**Nachtrag 26.09.:** Tastenschritte eingefügt, Controller aus den Texten entfernt. Die
+Tasten-Schritte zählen den **Tastendruck**, nicht den Erfolg (F ohne Heilung hakt trotzdem ab —
+sonst hinge das Tutorial bei einem neuen Spielstand fest). Schießen zählt schon beim Klick, weil
+`FireWeapon` im Safehouse an `GM.CombatAllowed` scheitert und `BP_Weapon.Fire` dort nie läuft. Dash
+ist jetzt auch im Safehouse verdrahtet (`PC_Safehouse`: IA_Dash `Started` → `StartDash`).
+
+**Q-Hinweis außerhalb der Kette:** `Q - SWITCH WEAPON` erscheint, sobald `UnlockedCalibers` ≥ 2
+und `SwitchHintDone` nicht gesetzt ist — auch nach dem Tutorial, und dann vorrangig vor dem
+Kettentext (`UpdateTutorialText` prüft das zuerst). `UnlockCaliber` ruft `UpdateTutorialText`.
+Q ruft `GI.NoteSwitch`, das den Merker nur bei ≥ 2 Kalibern setzt und speichert. `SwitchHintDone`
+steht in GI und `SG_Achachay` (`WriteTutorial`/`ReadTutorial`), `ResetTutorial` setzt ihn zurück.
+Alte Spielstände mit schon zwei Kalibern sehen den Hinweis einmal.
 
 `AdvanceTutorial(Step)` rückt nur weiter, wenn `Step` der aktuelle Schritt ist. Wer vorgreift,
 erledigt den Schritt später noch einmal. `UpdateTutorialText` setzt den Text per Int-Switch.
@@ -957,6 +974,31 @@ zeigt **New Game** das Tutorial wieder.
 **Per PIE geprüft:** mit echtem Spielstand bleibt die Zeile leer; Schwelle testweise auf 99999 →
 „WASD / LEFT STICK - MOVE“ erscheint. Sofort zurückgestellt. Das Durchlaufen der Schritte ist nicht
 per PIE geprüft (braucht Eingaben).
+
+#### 17e. Playtest-Fixes Outside (26.09.)
+
+- **Schütze schoss nicht:** `ComputeMoveGoal` setzte bei Sicht `AcceptRadius = AttackRange − 20`.
+  AI MoveTo zählt den Kapselradius dazu → Stopp bei ~1120, Reichweite 1100 → nächster Laufbefehl
+  gilt sofort als erfüllt, der Schütze stand dauerhaft knapp außer Reichweite. Jetzt
+  `AttackRange × 0,75` (Schütze 825, Boss 1125, Nahkampf 112 statt 130).
+- **Südwand** 400 → 150 hoch (`Wall_South`, Scale Z 1,5, Z 75), verdeckte die Sicht. Die Tür
+  (300 hoch) steht jetzt über die Wand hinaus.
+- **NavMesh oben fehlte:** `RecastNavMesh` steht auf `Static`, das Spiel nutzt also nur den
+  gespeicherten Stand. Im Editor war das NavMesh vollständig; `L_Outside` mit diesem Stand neu
+  gespeichert. Falls es im Build weiter fehlt: *Build → Build Paths*, **warten bis fertig**, speichern.
+- **Gegner clippen ineinander, unverwundbar (bei vielen Spawns):** `StartWave` spawnt den Burst in
+  einer Schleife im selben Frame, und `SpawnOne` nutzte `AdjustIfPossibleButAlwaysSpawn` — ohne
+  Platz entstanden Gegner ineinander. Jetzt `AdjustIfPossibleButDontSpawnIfColliding`; schlägt der
+  Spawn fehl, geht es über `CastFailed` in die neue Funktion **`RequeueSpawn(Kind)`** (0 Rusher,
+  1 Schütze, sonst Läufer), die `SpawnsPending` und den Typzähler wieder erhöht. `SpawnTick` holt den
+  Gegner beim nächsten Takt nach; `CheckWaveOver` bleibt stimmig. Boss-Spawn unverändert (muss immer
+  kommen).
+- **Befund, nicht behoben — Ring-Spawn ist tot:** `SpawnProjected`/`SpawnValid` werden von keinem
+  Node gesetzt. `GetSpawnTransform` fällt deshalb **immer** auf einen der 7 festen Spawnpunkte
+  zurück; der Ring um den Spieler aus Schritt 44 wirkt nicht.
+- **Offen — Gegner in Kisten bei vielen Spawns:** Kisten sind `Static`/`BlockAll`. Verdacht:
+  `bUseRVOAvoidance = true` am `CharMoveComp` (RVO ignoriert das NavMesh und drückt in der Menge an
+  Hindernisse) und/oder `AdjustIfPossibleButAlwaysSpawn` in `SpawnOne`. Noch nicht geändert.
 
 #### 17d. Offen
 
