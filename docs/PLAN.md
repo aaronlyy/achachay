@@ -984,10 +984,104 @@ Workarounds aus dem Abgabe-Pass, die im Editor sauberer gehen. Vor dem Package-B
 | ✔ `BP_PlayerCharacter.HandleDeath` | Zweig „Is Not Valid" dupliziert den Timer, die GI ist immer gültig | Zweig entfernen |
 | ✔ `L_Outside` | `BP_TestTarget` (Übungspuppe vom 15.09.) steht noch im Level | Aus dem Level löschen; Asset und `BP_TestInteractable` danach löschen, wenn nichts mehr darauf zeigt |
 
-**Tote Kopien (Scan 26.09.):** Nodes, die weder vom Funktionseingang noch von einem Event per Exec erreichbar sind — Reste früherer DSL-Rewrites. In `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` und `BP_WaveDirector.GetSpawnTransform` gelöscht (53 Nodes, DSL vorher = nachher). **Offen:** `BP_Projectile` (`HandleHit` 25/35, `MoveStep` 14/28, EventGraph 10/21) und `WBP_HUD.RefreshInteractPrompt` (27/33, u. a. `LogString`) — beide hatten ungespeicherte Nutzeränderungen, deshalb nicht angefasst.
+**Tote Kopien (Scan 26.09.):** Nodes, die weder vom Funktionseingang noch von einem Event per Exec erreichbar sind — Reste früherer DSL-Rewrites. In `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` und `BP_WaveDirector.GetSpawnTransform` gelöscht (53 Nodes, DSL vorher = nachher). **Offen:** `BP_Projectile` (`HandleHit` 25/35, `MoveStep` 14/28, EventGraph 10/21) — steht jetzt in Abschnitt 18, Schritt 2. `WBP_HUD.RefreshInteractPrompt` ist laut Scan vom 26.09. sauber (vom Nutzer aufgeräumt).
 
 **Phase B (zu groß für heute):** `GI_Achachay.GetUpgradeLevel`/`RaiseUpgradeLevel` (48 + 64 Knoten, sechsfache
 `if`-Kette über Namen) → eine `Map<Name,int> UpgradeLevels`. Berührt das Savegame, deshalb nicht vor der Abgabe.
+
+### 18. Aufräumen (Plan 26.09., Schritt für Schritt mit dem Nutzer)
+
+Grundlage ist ein Scan aller 41 Blueprints vom 26.09.: Knoten pro Graph, GI-Casts, Knoten, die vom
+Eingang nicht erreichbar sind, und Variablen und Funktionen, auf die nirgends ein Knoten zeigt.
+**Jeder Schritt endet mit Compile aller Aufrufer + kurzem PIE + Commit.** Vor jedem Einschub die
+Erreichbarkeit prüfen (AGENTS.md §3, tote Kopien).
+
+#### Schritt 1 — GI einheitlich cachen ✔ (26.09.)
+
+**Erledigt:** 16 Blueprints. Jeder GI-Cast außerhalb von `CacheGI` ist durch `Get GI` ersetzt, die
+Exec-Kette läuft über den früheren `then`-Pfad weiter, die toten `CastFailed`-Zweige sind entfernt
+(`PayoutAndDie`: doppeltes `DestroyActor`, `BP_Trophy`: Verstecken, `BP_WaveDirector`: zweites
+`StartWave`). Einstieg ist überall `BeginPlay` bzw. `Construct` → `CacheGI`, bei `BP_Grenade`
+`Launch` (hat kein BeginPlay). `BP_Weapon.InitWeapon` ruft jetzt `CacheGI` statt selbst zu casten.
+Restscan: Casts nur noch in `CacheGI` und in `BP_PlayerCharacter.StoreEssentialVariables`
+(Umbenennung durch den Nutzer, Schritt 5). PIE in allen drei Leveln ohne Laufzeitfehler.
+
+**Muster, überall gleich:** Variable **`GI`** (Typ `GI_Achachay`) und Funktion **`CacheGI`**
+(`Cast To GI_Achachay (Get Game Instance)` → `Set GI`), als **erster** Aufruf in
+`BeginPlay`/`Construct`. Alle anderen Stellen lesen nur noch `Get GI`. Das ist Vorbild bei
+`BP_InteractStation`, `WBP_HUD`, `BP_Weapon.InitWeapon`.
+
+| Blueprint | Cast-Stellen heute | Maßnahme |
+|---|---|---|
+| `BP_PlayerCharacter` | `UseHeal` (+ Cache in `StoreEssentialVariables`, Variable heißt **`GI Achachay`**) | `UseHeal` auf die Variable; Variable → `GI` umbenennen (**Nutzer**, F2 — der Editor zieht alle Referenzen nach) |
+| `PC_Outside` | EventGraph, `TogglePause` | `GI` + `CacheGI` |
+| `PC_Safehouse` | EventGraph, `PlaceAtEntry`, `TogglePause` | `GI` + `CacheGI` |
+| `PC_Menu` | `ShowMenu`, `StartIntro` | `GI` + `CacheGI` |
+| `BPC_Health` | `NotePlayerDamage`, `DeathFeedback`, `HitFeedback` (2×) | `GI` + `CacheGI` im BeginPlay der Komponente |
+| `BP_EnemyBase` | `PayoutAndDie`, `TrySpawnDrop` | `GI` + `CacheGI` (gilt für alle Gegnertypen) |
+| `BP_Grenade` | `BoomFeedback` | `GI` + `CacheGI` |
+| `BP_BossCore` | `TryPickup` | `GI` + `CacheGI` |
+| `BP_Stranger` | `RefreshPrompt`, `TryTrade` | `GI` + `CacheGI` |
+| `BP_SafehouseDoor` | `DoExtract` | `GI` + `CacheGI` |
+| `BP_Trophy` | BeginPlay | `GI` + `CacheGI` |
+| `BP_BackDoor` | `RefreshDoorText`, `TryEscape` | erbt `GI` schon von `BP_InteractStation` → nur `Get GI` |
+| `BP_WaveDirector` | Cast inline im BeginPlay | in eigene `CacheGI` auslagern (Variable existiert) |
+| `WBP_Menu` | `DoPlay`, `DoNewGame` (2×) | `GI` + `CacheGI` im Construct |
+| `WBP_Pause` | `DoResume`, `DoMainMenu` | `GI` + `CacheGI` |
+| `WBP_Settings` | `DoBack`, `InitSliders` (3×), EventGraph (3×) | `GI` + `CacheGI` |
+
+Gut 30 Casts in 16 Blueprints werden zu je einem. Reihenfolge: erst die Actors (Gegner, Items,
+Safehouse), dann die Controller, zuletzt die Widgets — jeweils PIE dazwischen.
+
+#### Schritt 2 — Toten Code entfernen
+
+| Wo | Was | Beleg |
+|---|---|---|
+| `BP_Projectile` | 49 unerreichbare Knoten: `HandleHit` (25), `MoveStep` (14), EventGraph (10) — alte Kopien aus DSL-Rewrites | Scan; DSL-Ausgabe vorher = nachher prüfen |
+| `GI_Achachay.GetUpgradeSummary` | nirgends aufgerufen | Scan, vor dem Löschen per `find_nodes` gegenprüfen |
+| `GI_Achachay.OnInputDeviceChanged` | Event Dispatcher, nie gebunden oder gerufen | Scan |
+| `BP_WaveDirector` | Variablen `RingMin`, `RingMax`, `SpawnCandidate` | nie gelesen oder gesetzt |
+| `BP_PlayerCharacter.EquipWeapon` | `PrintString` im Fehlerzweig | optional |
+
+**Kein toter Code, obwohl der Scan sie meldet:** Funktionen, die per Timer über den Namen laufen
+(`DoTravel`, `ShowCredits`, `EndCredits`, `RestartRun`, `DeathFadeOut`, `FinishReload`, `Explode`,
+`Flicker`, `CheckWaveOver`, `SpawnTick`, `EndIntro`) und die Button-Handler, die über
+`Create Event` gebunden sind (`DoPlay`, `DoNewGame`, `DoResume`, `DoMainMenu`, `DoBack`,
+`DoWindowMode`, `DoQuality`). Ein Knoten zeigt auf sie nicht — sie hängen an einem String bzw.
+Delegate. **Nicht löschen.**
+
+#### Schritt 3 — Große Funktionen aufteilen
+
+Kandidaten nach Knotenzahl, mit Vorschlag für die Teilfunktionen:
+
+| Funktion | Knoten | Aufteilung |
+|---|---|---|
+| `BP_PlayerCharacter.UpdateCameraClamp` | 106 | `ComputeVisibleHalfExtent` · `ClampToField` · `ApplyCameraArm` |
+| `BP_PlayerCharacter.ComputeLaserLength` / `DrawAimLaser` | 46 / 37 | Trace und Darstellung trennen |
+| `BP_WaveDirector.StartWave` | 55 | `ReadWaveRow` · `ResetWaveCounters` · `SpawnBossIfNeeded` |
+| `BP_EnemyBase.FireRing` / `FireShot` | 54 / 26 | gemeinsames `SpawnEnemyShot(Dir, Damage)`; beide rufen es |
+| `BP_Weapon.SpawnShot` | 41 | `ComputeShotDir` (Streuung, Laser) · `SpawnOneProjectile` |
+| `WBP_HUD.RefreshWeaponTexts` | 41 | `BuildCaliberStrip` · `RefreshMagazineText` |
+| `WBP_HUD.RefreshHUD` | 36 | HP/Stamina inline → `RefreshVitals` |
+| `BP_SupplyBox.TryBuy` / `BuildIcon` | 34 / 39 | `TryBuyLaser` · `TryBuyConsumable`; `IconLaser` · `IconGrenade` · `IconHeal` |
+| `GI_Achachay.GetUpgradeLevel` / `RaiseUpgradeLevel` | 32 / 43 | sechsfache `if`-Kette → `Map<Name,int>`. **Berührt das Savegame**, deshalb zuletzt und nur auf ausdrücklichen Wunsch |
+
+Enthält eine Funktion Klammer-Knoten (`ToString(Integer)`, `SetText(Text)` …), wird sie als DSL-Rumpf
+plus `create_node` neu gebaut (AGENTS.md §3). Nach jedem Umbau Knoten zählen und tote Kopien löschen.
+
+#### Schritt 4 — Doppelten Code zusammenlegen
+
+- **`PC_Achachay`** als gemeinsame Elternklasse von `PC_Outside` und `PC_Safehouse`
+  (`BlueprintTools.set_parent` kann umhängen). Nach oben wandern `AddMappingContext`,
+  `StoreEssentialVariables`, `ShowHUD`, `TogglePause`, `CacheGI` und die Pause-Action. Heute ruft
+  `PC_Outside` sogar `Class|PCSafehouse|ShowHUD`.
+- Gegner-Projektil-Spawn (siehe Schritt 3).
+
+#### Schritt 5 — Handgriffe für den Nutzer
+
+- `BP_PlayerCharacter`: Variable `GI Achachay` → `GI` (F2)
+- `M_Blue` → `M_Station`, danach *Fix Up Redirectors*
+- Nach Schritt 3 und 4 in den geänderten Graphen einmal *Arrange* — neue Knoten liegen auf 0,0
 
 ### Phase B — nach der Abgabe
 
