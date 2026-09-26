@@ -247,6 +247,9 @@ Konsequenzen für die Arbeitsweise:
   `write_graph_dsl` scheitert am Compile — auch das, mit dem man die Funktion gerade reparieren
   will. Reihenfolge: **erst den Aufrufer leeren**, dann die Funktion neu bauen, dann den Aufrufer
   neu schreiben.
+- **Default am Eltern-CDO erreicht die Kind-CDOs nicht.** Neue Variable in `BP_InteractStation`,
+  Default dort auf 70 gesetzt → an `BP_Workbench` & Co. stand weiter 0 (26.09.). Nach dem Setzen
+  die Kind-CDOs lesen und bei Bedarf einzeln setzen.
 - **Neu angelegte Variablen sind nicht Instance Editable.** Im Level sind sie am Actor damit weder
   sicht- noch einstellbar, und `set_properties` auf die Instanz scheitert mit „could not be set".
   Für alles, was getunt werden soll: `set_variable_instance_editable`.

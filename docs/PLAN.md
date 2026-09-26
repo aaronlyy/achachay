@@ -811,7 +811,8 @@ Controller-Aim. Weniger Spread beim Schießen. Soll rot leuchten."*
   23.09. — bis zum Mauspunkt sah es komisch aus). Die Maus gibt nur die Richtung vor, mit Gamepad
   die Blickrichtung. Ohne Laser
   unsichtbar. Dicke `LaserThickness` 0,06 (= 6 cm).
-- **Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.
+- ~~**Noch nicht:** Der Strahl endet nicht an Wänden oder Gegnern, sondern am Zielpunkt.~~
+  Erledigt (c1b4b80): Der Strahl stoppt an der ersten Wand.
 
 ### 16. Endgame: Boss-Kern, der Fremde, Railgun und Hintertür (geplant 25.09.)
 
@@ -877,6 +878,85 @@ Zuerst **1–5** (Kern und Railgun, ohne Zutun des Nutzers testbar). Parallel le
   droppt nach dem Tausch nicht mehr, der Boss bleibt aber Boss
 - **Hintertür nach dem Endscreen:** Der Schlüssel bleibt. Man kann jederzeit wieder zum Menü raus
 - **Pokal:** Ein fünftes Podest „Entkommen" wäre eine Zeile in `GetFlag`, **optional**
+
+### 17. Rahmen: Kisten-Symbole, Logo, Intro, Tutorial (26.09.)
+
+Wunsch 26.09.: Logo, Splash, Intro, Symbole auf den Kisten, Tutorial. Entschieden: Das Tutorial
+läuft als **Hinweiskette im echten Spiel** (kein eigenes Level), das Logo ist ein **Schrift-Logo in
+VT323**.
+
+#### 17a. Kisten-Symbole ✔ (26.09.)
+
+Über jeder Station schwebt ein leuchtendes Symbol aus Grundformen mit `M_Tracer`, das sich um die
+Hochachse dreht. Gekauft oder ausgereizt → auf 30 % gedimmt.
+
+| Station | Form | Farbe | gedimmt, wenn |
+|---|---|---|---|
+| Waffenbank | Patrone (Kugelspitze + Hülse) | `ProjectileColor` des Kalibers — also genau die Tracerfarbe | Kaliber freigeschaltet |
+| Werkbank | Pfeil nach oben (Kegel + Schaft) | pro Instanz (`IconColor`): Speed Cyan, Armor Blau, Health Rosa, Damage Orange, Stamina Gelb, Reload Violett | Stufe = `MaxLevel` |
+| Heilung | stehendes Kreuz | Grün | — |
+| Granate | Kugel mit Zünder | Olivgrün | — |
+| Laser | Stab mit Linse | Rot | Laser gekauft |
+
+**Bau:** `BP_InteractStation` hat neu `AddIconPart`, `SpawnIcon`, `RefreshIcon`, `SpinIcon` und die
+Variablen `IconMesh(2)`, `IconScale(2)`, `IconOffset2`, `IconColor` (Instance Editable), `IconDim`,
+`IconHeight` (95), `IconPart1/2`. Die Teile werden **zur Laufzeit** per `AddStaticMeshComponent`
+angehängt (SCS geht per Toolset nicht) und in **Weltkoordinaten** platziert — so erbt das Symbol
+keine Skalierung vom Stations-Mesh. `SpawnIcon` hängt am `BeginPlay` der Basis, `SpinIcon` am
+`Tick`. Ohne `IconMesh` passiert nichts — Podeste und Türen bleiben unberührt.
+
+Die drei Kindklassen haben je `BuildIcon` (Form setzen, `SyncIcon`, `SpawnIcon`; hinter
+`Parent:BeginPlay`) und `SyncIcon` (Farbe/Dimmen aus der GI; zusätzlich am Ende von `OnInteract`,
+damit ein Kauf sofort sichtbar wird).
+
+**Per PIE geprüft:** Symbole sitzen über allen Stationen, Farben stimmen, Log ohne `Accessed None`.
+
+#### 17b. Intro ✔ (26.09.)
+
+`WBP_Intro` (Layout und Texte vom Nutzer, im Designer gesetzt — der Code fasst sie nicht an).
+`Fade(Delta)` im Tick: 0,6 s ein, 0,6 s aus, gesamt 3,4 s,
+über `SetRenderOpacity`.
+
+`PC_Menu.BeginPlay` → **`StartIntro`** statt `ShowMenu`: Ist `GI.IntroShown` gesetzt, geht es
+direkt ins Menü. Sonst werden das Flag gesetzt (nur Sitzung, nicht im Savegame), das Intro erzeugt
+(Z 20), GameOnly-Input und ein Timer auf `EndIntro` (3,4 s). **`TickIntro`** springt bei
+Space/Enter/LMB/Esc/Gamepad-A sofort zu `EndIntro`, das `IntroActive` prüft, das Widget entfernt
+und `ShowMenu` ruft.
+
+**Per PIE geprüft:** Intro sichtbar, nach dem Timer steht das Menü. Das Überspringen per Taste ist
+nicht per PIE geprüft (Tastendruck ist über das Toolset nicht auslösbar).
+
+#### 17c. Tutorial ✔ (26.09.)
+
+**GI:** `TutorialStep` (int), `TutorialDone` (bool, gespeichert als SG-Feld `TutorialDone`),
+`TutorialText` (Text, CDO-Default = Schritt-0-Text), `IntroShown`.
+
+| Schritt | Text | abgehakt durch |
+|---|---|---|
+| 0 | WASD / LEFT STICK - MOVE | `WBP_HUD.RefreshTutorial`: Spieler > 200 uu/s |
+| 1 | … AIM … SHOOT | `BP_Weapon.Fire` nach `ShotFeedback` |
+| 2 | WALK TO THE DOOR AND PRESS [E] … | `RefreshTutorial`: `Director` gültig (= draußen) |
+| 3 | KILL THE ENEMIES … | `GI.NoteKill` |
+| 4 | WAVE CLEARED? RUN BACK … | `GI.BankRunMoney` (Extraktion) |
+| 5 | SPEND YOUR MONEY … | `GI.SpendMoney`, erfolgreicher Kauf → `TutorialDone`, speichern |
+
+`AdvanceTutorial(Step)` rückt nur weiter, wenn `Step` der aktuelle Schritt ist. Wer vorgreift,
+erledigt den Schritt später noch einmal. `UpdateTutorialText` setzt den Text per Int-Switch.
+Das HUD schreibt `GI.TutorialText` jeden Tick in `T_Tutorial`, ein leerer Text heißt fertig.
+
+**Savegame:** `WriteTutorial` in `SaveProgress` vor `SaveGameToSlot`, `ReadTutorial` am Ende von
+`LoadProgress`. **Alte Spielstände:** `TutorialDone = SG.TutorialDone or HighestWave > 0` — wer
+schon draußen war, sieht kein Tutorial. `ResetProgress` → `ResetTutorial` (vor dem Speichern), also
+zeigt **New Game** das Tutorial wieder.
+
+**Per PIE geprüft:** mit echtem Spielstand bleibt die Zeile leer; Schwelle testweise auf 99999 →
+„WASD / LEFT STICK - MOVE“ erscheint. Sofort zurückgestellt. Das Durchlaufen der Schritte ist nicht
+per PIE geprüft (braucht Eingaben).
+
+#### 17d. Offen
+
+- **Splash:** Startbild unter *Project Settings → Windows → Splash* — Textur kann das Toolset nicht
+  erzeugen; Screenshot des Intro-Logos als PNG importieren.
 
 ### Aufräumen vor dem Build (Review, 25.09.)
 
