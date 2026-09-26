@@ -632,10 +632,10 @@ Tod. Was noch fehlt, ist der Einstieg beim allerersten Start.
 ### 11. Heilung, Granate, Kisten, Pause, Tracer ✔ (23.09.)
 
 **Heilung.** `BPC_Health.Heal(Amount)` klemmt auf `MaxHealth`. `BP_PlayerCharacter.UseHeal` heilt
-**25 % der Maximal-HP** (Variable `HealFraction`, zuerst 50 %, auf Zuruf halbiert), verbraucht eine
+**50 % der Maximal-HP** (Variable `HealFraction`; zuerst 50 %, am 23.09. auf 25 % halbiert, am 26.09. auf Zuruf zurück auf 50 %), verbraucht eine
 Ladung und speichert — aber nur, wenn eine Ladung da ist, der Spieler lebt und er **nicht schon voll**
-ist (sonst verschwendet man eine Heilung). Bei 100 HP Grundleben sind das 25 HP, mit Health auf
-Stufe 6 (250 HP) 62.
+ist (sonst verschwendet man eine Heilung). Bei 100 HP Grundleben sind das 50 HP, mit Health auf
+Stufe 6 (250 HP) 125.
 
 **Granate.** Neuer Actor `BP_Grenade` (Kugel, 30 uu): fliegt in **0,5 s im Bogen** (180 uu hoch)
 zum Mauszeiger, zündet nach **1,4 s** und macht **150 Schaden im Radius 450** an jedem
