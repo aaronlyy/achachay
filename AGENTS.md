@@ -255,6 +255,13 @@ Konsequenzen für die Arbeitsweise:
   daran hing, in der Luft. Nach `set_parent` unverbundene `self`-Pins des betroffenen Typs suchen und
   an einen neuen (geerbten) Getter hängen — **vor** dem Compile, sonst bricht das Skript ab.
   Funktionsaufrufe dagegen lösen sich nach dem Umhängen über den Namen von selbst auf.
+- **Der Editor schreibt `achachay.uproject` neu, sobald im Plugin-Fenster etwas umgeschaltet wird**
+  — und wirft dabei `TargetAllowList` weg. Ohne `"TargetAllowList": ["Editor"]` an `EditorToolset`
+  und `ModelContextProtocol` bricht das gepackte Spiel beim Start ab (fehlende Plugin-Abhängigkeit,
+  Exit-Code 1, kein Fenster). Vor jedem Packen `git diff achachay.uproject` prüfen.
+- **Gegner stehen still → zuerst den `Pawn`-Pin am `AI MoveTo` in `BP_EnemyBase` prüfen.** Am
+  26.09. war er leer; jeder Laufbefehl scheiterte lautlos (`OnFail` hängt an nichts). Zum Prüfen
+  vorübergehend `PrintString` an `then`/`OnSuccess`/`OnFail` hängen und im Log zählen.
 - **`set_pin_value` markiert das Asset nicht als geändert.** `save_assets` meldet danach `true`,
   schreibt aber nichts — die Änderung lebt nur im Editor und fehlt im Commit und im Build (26.09.:
   Tür-Texte). Nach reinen Pin-Änderungen `is_dirty` prüfen; wenn `false`, eine CDO-Eigenschaft
