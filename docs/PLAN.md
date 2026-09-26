@@ -1033,7 +1033,14 @@ Restscan: Casts nur noch in `CacheGI` und in `BP_PlayerCharacter.StoreEssentialV
 Gut 30 Casts in 16 Blueprints werden zu je einem. Reihenfolge: erst die Actors (Gegner, Items,
 Safehouse), dann die Controller, zuletzt die Widgets — jeweils PIE dazwischen.
 
-#### Schritt 2 — Toten Code entfernen
+#### Schritt 2 — Toten Code entfernen ✔ (26.09.)
+
+**Erledigt:** `BP_Projectile` 49 Knoten (DSL aller drei Graphen vorher = nachher),
+`GI.GetUpgradeSummary`, Dispatcher `OnInputDeviceChanged` samt seiner zwei Aufrufe in
+`SetDeviceKeyboardMouse`/`SetDeviceGamepad` (gebunden hat ihn niemand), `BP_WaveDirector`
+`RingMin`/`RingMax`/`SpawnCandidate`. Vorher per Binär-Suche über alle `.uasset`/`.umap` geprüft,
+dass die Namen nur im eigenen Asset vorkommen. `PrintString` in `EquipWeapon` bleibt (nur im
+Fehlerfall, fällt im Shipping-Build ohnehin weg).
 
 | Wo | Was | Beleg |
 |---|---|---|
