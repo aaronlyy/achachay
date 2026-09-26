@@ -250,6 +250,13 @@ Konsequenzen für die Arbeitsweise:
 - **Default am Eltern-CDO erreicht die Kind-CDOs nicht.** Neue Variable in `BP_InteractStation`,
   Default dort auf 70 gesetzt → an `BP_Workbench` & Co. stand weiter 0 (26.09.). Nach dem Setzen
   die Kind-CDOs lesen und bei Bedarf einzeln setzen.
+- **`remove_variable` löscht auch alle Getter/Setter-Knoten der Variable.** Beim Verschieben einer
+  Variable in eine Elternklasse (26.09., `PC_Achachay`) hingen danach alle Knoten, deren `self`
+  daran hing, in der Luft. Nach `set_parent` unverbundene `self`-Pins des betroffenen Typs suchen und
+  an einen neuen (geerbten) Getter hängen — **vor** dem Compile, sonst bricht das Skript ab.
+  Funktionsaufrufe dagegen lösen sich nach dem Umhängen über den Namen von selbst auf.
+- **CaptureViewport zeigt im PIE die Editor-Welt**, nicht das Spiel. Für Spielbilder
+  `CaptureEditorImage` — das braucht aber gut 10 s; für zeitkritische Tests ungeeignet.
 - **Test-Gegner im PIE töten den Spieler — und der Tod speichert.** Am 26.09. einen Boss und einen
   Schützen testweise vor den Spawn gestellt: nach 4 s tot, `ClearRunState` hat Heilungen und
   Granaten im **echten** Spielstand genullt (`Saved/SaveGames/Achachay.sav`, nicht in Git, kein
