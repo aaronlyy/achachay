@@ -337,6 +337,11 @@ Konsequenzen für die Arbeitsweise:
 - **`StartPIE` meldet „PIE ended before warmup", obwohl PIE läuft**, wenn der Editor im Hintergrund
   gedrosselt ist (`max tick rate 3` im Log). `IsPIERunning` fragen. Objekte der PIE-Welt sind über
   `find_actors`/`get_properties` nicht erreichbar.
+- **`SceneTools.load_level` kann den Editor abstürzen lassen** (28.09.: `L_Menu` → `L_Safehouse`,
+  `EXCEPTION_ACCESS_VIOLATION reading 0x0` direkt nach `MAP LOAD`). Alles Kompilierte, aber nicht
+  Gespeicherte war weg. **Vor jedem `load_level` alle geänderten Assets speichern** — besser: nach
+  jedem Arbeitsschritt sofort `save_assets`, nicht erst am Ende. Level-Daten lieber lesen, wenn der
+  Nutzer das Level ohnehin offen hat.
 - **Hängende alte Editor-Instanz:** Ein Editor, der in „Preparing to exit" steckt, hält den MCP-Port.
   Jeder Aufruf läuft dann in den Timeout, auch wenn der neue Editor offen ist. `Get-Process
   UnrealEditor*` zeigt zwei Instanzen; die alte muss weg. Der neue Editor loggt dann nach

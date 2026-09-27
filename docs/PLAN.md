@@ -110,7 +110,7 @@ Bei etwa 1 Dollar pro Kill und 150–250 Dollar aus einem gut gelaufenen Run. Al
 | .45 ACP | 120 | 20 | 1,6 s | Langsamer, härter |
 | 7.62×39 (AK) | 200 | 30 | 2,0 s | Dauerfeuer mit Wumms |
 | .44 Magnum | 300 | 6 | 2,4 s | Wenige Schuss, hoher Einzelschaden |
-| .50 BMG | 500 | 3 | 3,2 s | Durchschlägt eine Reihe |
+| .50 BMG | 500 | 6 | 3,2 s | Durchschlägt eine Reihe (26.09.: Schaden 150 → 250, Feuerrate 1 → 1,8/s, Magazin 3 → 6) |
 | Heilung | 60 | | | pro Stück |
 | Granate | 80 | | | pro Stück |
 
@@ -955,6 +955,16 @@ sonst hinge das Tutorial bei einem neuen Spielstand fest). Schießen zählt scho
 `FireWeapon` im Safehouse an `GM.CombatAllowed` scheitert und `BP_Weapon.Fire` dort nie läuft. Dash
 ist jetzt auch im Safehouse verdrahtet (`PC_Safehouse`: IA_Dash `Started` → `StartDash`).
 
+**Ziel-Schritt (28.09.):** Nach „E" kommt Schritt 6 „YOUR GOAL: SURVIVE TEN WAVES, DEFEAT THE
+BOSS, BRING ITS CORE TO THE STRANGER AND ESCAPE". `AdvanceTutorial` startet bei Schritt 6 einen
+Timer (7 s) auf `AdvanceGoal` = `AdvanceTutorial(6)`. Danach alles +1: Tür 7, Kill 8, Bank 9,
+Spend 10, fertig ab 11. Das HUD ruft draußen erst `AdvanceTutorial(6)`, dann `(7)` — wer vor Ablauf
+rausgeht, hängt nicht fest.
+
+**Texte als ganze Sätze (26.09., Wunsch Nutzer):** keine Bindestriche mehr, z. B. „USE WASD TO
+MOVE", „PRESS R TO RELOAD", „TAKE THE RIGHT DOOR TO GO OUTSIDE. THE LEFT DOOR IS YOUR ESCAPE",
+„PRESS Q TO SWITCH WEAPONS". Die Kurzformen in der Tabelle oben sind nur Stichworte.
+
 **Q-Hinweis außerhalb der Kette:** `Q - SWITCH WEAPON` erscheint, sobald `UnlockedCalibers` ≥ 2
 und `SwitchHintDone` nicht gesetzt ist — auch nach dem Tutorial, und dann vorrangig vor dem
 Kettentext (`UpdateTutorialText` prüft das zuerst). `UnlockCaliber` ruft `UpdateTutorialText`.
@@ -993,6 +1003,25 @@ per PIE geprüft (braucht Eingaben).
   1 Schütze, sonst Läufer), die `SpawnsPending` und den Typzähler wieder erhöht. `SpawnTick` holt den
   Gegner beim nächsten Takt nach; `CheckWaveOver` bleibt stimmig. Boss-Spawn unverändert (muss immer
   kommen).
+- **Türen stechen heraus:** `BP_ExitDoor` (grün) und `BP_BackDoor` (gold) bekommen über das
+  Symbolsystem der `BP_InteractStation` einen leuchtenden, rotierenden Pfeil (Kegel + Schaft wie die
+  Werkbank, `IconHeight` 70 über der Tür). **Achtung:** `IconColor` ist an den Level-Instanzen
+  gespeichert und überschreibt den CDO — Farbe deshalb an der Instanz in `L_Safehouse` gesetzt. Dazu
+  je ein farbiges `PointLight` über der Tür (`DoorLight_Exit`, `DoorLight_Escape`, Unitless 3000,
+  Radius 450) und draußen `DoorLight_Safehouse` (grün, 6000, gegen die orange `Lamp_Door`).
+- **Balance 28.09.:** Rüstung `ArmorLevel × 0.1333` (Stufe 6 = 80 %, vorher 0,06 = 36 %).
+  Grundschaden Läufer 28, Schütze 22, Rusher 36, Boss 35 / Ring 12. `WaveDirector.SetupEnemy`
+  skaliert `AttackDamage` und `RingDamage` mit `1 + 0,06 × (Welle − 1)`. Ergebnis: ohne Rüstung
+  ~28–55 je nach Typ und Welle, volle Rüstung ~4–11.
+- **Munition voll im Safehouse:** `GI.DoTravel` ruft vor `OpenLevel` `RefillIfSafehouse` — leert
+  `MagazineAmmo`, wenn das Ziel `L_Safehouse` ist; `BP_Weapon.SeedMagazine` füllt dann alle
+  freigeschalteten Kaliber voll. Die Map überlebt den Weg nach draußen.
+- **Kein Spawn am Spieler:** `SpawnOne` ruft nach `GetSpawnTransform` `CheckSpawnClear` (setzt
+  `SpawnClear`, XY-Abstand ≥ `MinSpawnDistance` = 1000, instance editable). Ist der Punkt zu nah,
+  passiert nichts — noch nichts abgezogen, der nächste `SpawnTick` würfelt neu.
+- **X ab Welle 10 gesperrt:** `ForceNextWave` prüft zusätzlich `CurrentWave < 10`.
+- **Boss-Kern türkis:** neues `MI_Core` (Kopie von `MI_Boss`, Glow 0,1/0,9/1,0), am `BP_BossCore`
+  gesetzt; Glow-Licht in `AddGlowLight` ebenfalls türkis. `MI_Boss` unverändert.
 - **Befund, nicht behoben — Ring-Spawn ist tot:** `SpawnProjected`/`SpawnValid` werden von keinem
   Node gesetzt. `GetSpawnTransform` fällt deshalb **immer** auf einen der 7 festen Spawnpunkte
   zurück; der Ring um den Spieler aus Schritt 44 wirkt nicht.
