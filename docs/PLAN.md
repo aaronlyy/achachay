@@ -955,11 +955,10 @@ sonst hinge das Tutorial bei einem neuen Spielstand fest). Schießen zählt scho
 `FireWeapon` im Safehouse an `GM.CombatAllowed` scheitert und `BP_Weapon.Fire` dort nie läuft. Dash
 ist jetzt auch im Safehouse verdrahtet (`PC_Safehouse`: IA_Dash `Started` → `StartDash`).
 
-**Ziel-Schritt (28.09.):** Nach „E" kommt Schritt 6 „YOUR GOAL: SURVIVE TEN WAVES, DEFEAT THE
-BOSS, BRING ITS CORE TO THE STRANGER AND ESCAPE". `AdvanceTutorial` startet bei Schritt 6 einen
-Timer (7 s) auf `AdvanceGoal` = `AdvanceTutorial(6)`. Danach alles +1: Tür 7, Kill 8, Bank 9,
-Spend 10, fertig ab 11. Das HUD ruft draußen erst `AdvanceTutorial(6)`, dann `(7)` — wer vor Ablauf
-rausgeht, hängt nicht fest.
+**Ziel im Türtext (28.09.):** Schritt 6 lautet jetzt „GET OUT, REACH WAVE 10, DEFEAT THE BOSS,
+BRING BACK HIS BELONGINGS AND ESCAPE. IF YOU'RE READY, GO TO THE DOOR ON YOUR RIGHT AND PRESS E".
+Der kurzzeitige eigene Ziel-Schritt (mit 7-s-Timer und `AdvanceGoal`) ist wieder entfernt; Nummern
+wie in der Tabelle oben (Tür 6 … Spend 9, fertig ab 10).
 
 **Texte als ganze Sätze (26.09., Wunsch Nutzer):** keine Bindestriche mehr, z. B. „USE WASD TO
 MOVE", „PRESS R TO RELOAD", „TAKE THE RIGHT DOOR TO GO OUTSIDE. THE LEFT DOOR IS YOUR ESCAPE",
