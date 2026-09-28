@@ -1033,6 +1033,33 @@ per PIE geprüft (braucht Eingaben).
   Todesprüfung `<= 0`. Die Prüfung rechnete nach dem Setzen neu und zog den Schaden ein zweites
   Mal ab. Gemessen per `PrintString` im PIE: Läufer 60 HP, AK 32 → Tod nach einem Treffer. Jetzt
   liest die Prüfung die Variable `CurrentHealth`. Betraf Gegner **und** Spieler.
+- **Rausschieben aus Kisten (28.09., zweiter Ansatz):** `BP_EnemyBase.PushOutOfGeometry` im Tick
+  nach `UpdateLineOfSight`. `ProjectPointToNavigation` der eigenen Position (QueryExtent 300); liegt
+  der nächste NavMesh-Punkt mehr als 25 (XY) entfernt, steckt die Kapsel in einer Kiste (das NavMesh
+  spart 42 um Hindernisse aus) → auf diesen Punkt setzen, Z bleibt. Gegner auf dem NavMesh bekommen
+  ihren eigenen Punkt zurück und werden nicht bewegt. RVO bleibt an (Nutzerwunsch: sonst klumpen sie).
+- **ENTFERNT (28.09.) — Stuck-System komplett raus.** Umsetzen per Teleport ließ auch normale
+  Gegner flackern (Nutzer im PIE). `CheckStuck`, `Unstick` und die `Stuck*`-Variablen sind gelöscht,
+  der Tick ist wie vorher. Offen bleibt die eigentliche Ursache: Schützen, die manchmal reglos am
+  Rand stehen (gemessen `moved=0.0`, `cansee=true`, 2700–4400 entfernt). Historie:
+- **Feststeckende Gegner sterben (28.09.):** `BP_EnemyBase.CheckStuck` im Tick (nach
+  `UpdateLineOfSight`). Anker + Zeit (`StuckAnchor`, `StuckSince`) werden zurückgesetzt, wenn der
+  Gegner sich > 100 vom Anker entfernt, gerade angreift (sieht Ziel und in Reichweite) oder zum
+  ersten Mal prüft. Nach `StuckTimeout` (10 s) → **`Unstick`**: Teleport auf einen zufälligen
+  `BP_SpawnPoint` (+100 Z), Uhr neu. Ursprünglich Tod per `ApplyDamage` — verworfen: tötete im
+  eigenen Tick (Accessed-None-Fehler danach) und traf per Messung Schützen, die mit
+  `cansee=true`, 2700–4400 entfernt, `moved=0.0` reglos standen (vermutlich auf Kisten ohne
+  NavMesh gespawnt) — nicht „stuck" im Sinne des Nutzers. Umsetzen löst beide Fälle ohne Geschenk-Kill.
+- **AK 41 Schaden:** bei höchster Damage-Stufe (×1,48 = 60) One-Shot für alle normalen Gegner in
+  Welle 1; ohne Upgrade 2 Treffer auf Läufer/Schütze.
+- **Querschläger (Ricochet), Upgrade für 1000:** `GI/SG.HasRicochet` (gespeichert über
+  `WriteTutorial`/`ReadTutorial`, zurückgesetzt in `ResetTutorial` — Namen historisch). Projektil:
+  `CanBounce`, `Bounces`, `MaxBounces` (2). `HandleHit` → kein Gegner → `TryBounce(Hit, Victim)`:
+  Richtung an `ImpactNormal` spiegeln, auf Trefferpunkt + Normale setzen; sonst wie bisher
+  `DamageAndSpend`. Eigene Kugeln treffen den Spieler nie (Owner in `IgnoredActors`), Gegner werden
+  getroffen statt abgeprallt, Gegnerschüsse prallen nicht ab. `BP_Weapon.SpawnShot` setzt
+  `CanBounce` aus der GI. Station: `BP_SupplyBox` mit `IsRicochet` (instance editable),
+  `TryBuyRicochet`, Symbol Platte + Kugel in Magenta, Prompt über `BuildRicochetPrompt`.
 - **Befund, nicht behoben — Ring-Spawn ist tot:** `SpawnProjected`/`SpawnValid` werden von keinem
   Node gesetzt. `GetSpawnTransform` fällt deshalb **immer** auf einen der 7 festen Spawnpunkte
   zurück; der Ring um den Spieler aus Schritt 44 wirkt nicht.
