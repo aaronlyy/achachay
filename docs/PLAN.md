@@ -1021,6 +1021,18 @@ per PIE geprüft (braucht Eingaben).
 - **X ab Welle 10 gesperrt:** `ForceNextWave` prüft zusätzlich `CurrentWave < 10`.
 - **Boss-Kern türkis:** neues `MI_Core` (Kopie von `MI_Boss`, Glow 0,1/0,9/1,0), am `BP_BossCore`
   gesetzt; Glow-Licht in `AddGlowLight` ebenfalls türkis. `MI_Boss` unverändert.
+- **Kaliber-Balance 28.09.** (AK war mit 143 Dauer-DPS fast doppelt so stark wie alles andere):
+  6mm 7 dmg / 14 pro s / 50 Schuss / 1,0 s · 9mm 14 / 12 / 36 / 1,2 · .45 ACP 34 / 6 / 16 / 1,5 ·
+  AK 32 / 7 / 30 / 2,0 (nur Schaden +2) · Magnum 150 / 1,8 / 6 / 2,8 · BMG unverändert.
+  Dauer-DPS (mit Reload): 77 · 120 · 131 · 153 · 147 · BMG.
+  **Nachtrag:** Die AK soll schneller schießen als die Pistolen („wie im echten Leben"):
+  6mm 9 dmg / 6,5 pro s · 9mm 18 / 6 · .45 ACP 34 / 5 · AK bleibt 7.
+  Dauer-DPS jetzt 52 · 90 · 116 · 153 · 147.
+- **Bug behoben 28.09. — Treffer ab halber HP töteten sofort:** In `BPC_Health.ApplyDamage` hing
+  der Ausgang des pure `Clamp(CurrentHealth − Schaden)` an `SetCurrentHealth` **und** an der
+  Todesprüfung `<= 0`. Die Prüfung rechnete nach dem Setzen neu und zog den Schaden ein zweites
+  Mal ab. Gemessen per `PrintString` im PIE: Läufer 60 HP, AK 32 → Tod nach einem Treffer. Jetzt
+  liest die Prüfung die Variable `CurrentHealth`. Betraf Gegner **und** Spieler.
 - **Befund, nicht behoben — Ring-Spawn ist tot:** `SpawnProjected`/`SpawnValid` werden von keinem
   Node gesetzt. `GetSpawnTransform` fällt deshalb **immer** auf einen der 7 festen Spawnpunkte
   zurück; der Ring um den Spieler aus Schritt 44 wirkt nicht.

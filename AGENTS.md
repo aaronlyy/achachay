@@ -236,6 +236,11 @@ Konsequenzen für die Arbeitsweise:
   `SpendMoney` (Vergleich `Geld >= Preis` vor *und* nach dem Abzug ausgewertet — Kauf zog Geld ab
   und meldete trotzdem „nicht bezahlt"), `ApplyWaveProfile` (Tempo doppelt skaliert und neu
   gewürfelt) und `SpawnOne` (zwei verschiedene Zufallswürfe für dieselbe Entscheidung).
+  28.09. der vierte und folgenreichste Treffer: `BPC_Health.ApplyDamage` prüfte den Tod mit dem
+  pure `Clamp`-Ergebnis **nach** `SetCurrentHealth` — jeder Treffer ≥ halbe HP war tödlich, für
+  Gegner und Spieler. Aufgefallen, weil der Nutzer „AK tötet mit einem Treffer" meldete, obwohl die
+  Daten 32 gegen 60 HP sagten. Die Daten stimmten, die Rechnung im Graph nicht — gefunden erst per
+  `PrintString` vor dem Schaden.
 - **Pure Nodes mit mehreren Ausgängen sind eine Falle, wenn Zufall im Input steckt.**
   `(bind (proj ok) (ProjectPointtoNavigation …))` sieht aus wie ein Aufruf mit zwei Ergebnissen —
   tatsächlich wird der Node pro gelesenem Pin **erneut** ausgewertet. Hängt am Input ein
@@ -342,6 +347,15 @@ Konsequenzen für die Arbeitsweise:
   Gespeicherte war weg. **Vor jedem `load_level` alle geänderten Assets speichern** — besser: nach
   jedem Arbeitsschritt sofort `save_assets`, nicht erst am Ende. Level-Daten lieber lesen, wenn der
   Nutzer das Level ohnehin offen hat.
+- **Self-Knoten anlegen:** Type-Id `Variables|Getareferencetoself` (gelesen heißt er
+  `Variables|Self-Reference`, das lässt sich nicht schreiben). Konvention seit 28.09.: **ein Self
+  pro Verwendung**, keine Sammel-Selfs mit Kabeln quer durch den Graph.
+- **Überflüssige Casts** („you don't need to cast") meldet der Compiler dem Toolset nicht, auch
+  nicht im Log. Selbst finden: am Cast den Ausgangstyp des Object-Eingangs lesen — ist er schon der
+  Zieltyp oder eine Unterklasse, Cast raus. Hängt etwas an `CastFailed` (Null-Prüfung), durch
+  `Utilities|IsValid` ersetzen (Pins `exec`, `InputObject`, `Is Valid`, `Is Not Valid`).
+- **Kommentare gehen per Toolset nicht.** `NodeComment` ist nicht lesbar/schreibbar, und
+  `create_node` mit `|AddComment...` bricht ab (`set_node_pos` fehlt). Kommentare setzt der Nutzer.
 - **Hängende alte Editor-Instanz:** Ein Editor, der in „Preparing to exit" steckt, hält den MCP-Port.
   Jeder Aufruf läuft dann in den Timeout, auch wenn der neue Editor offen ist. `Get-Process
   UnrealEditor*` zeigt zwei Instanzen; die alte muss weg. Der neue Editor loggt dann nach
