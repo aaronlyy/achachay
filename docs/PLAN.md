@@ -1033,6 +1033,18 @@ per PIE geprüft (braucht Eingaben).
   Todesprüfung `<= 0`. Die Prüfung rechnete nach dem Setzen neu und zog den Schaden ein zweites
   Mal ab. Gemessen per `PrintString` im PIE: Läufer 60 HP, AK 32 → Tod nach einem Treffer. Jetzt
   liest die Prüfung die Variable `CurrentHealth`. Betraf Gegner **und** Spieler.
+- **Fünf neue Achievements (28.09.):** GI/SG-Flags `WaveUnder15`, `PerfectWave`, `BossRicochetOnly`,
+  `BossGrenadeKill`, `BossUnder20` (gespeichert über `WriteTutorial`/`ReadTutorial`, zurückgesetzt in
+  `ResetTutorial`; `GetFlag` → Default → `GetFlagExtra`, String→Name-Vergleich, weil die
+  String-Vergleiche Klammer-Type-Ids haben). Zähler pro Welle in der GI (`WaveHits`, `WaveMisses`,
+  `BossDirectHit`, `BossBounceHit`, `LastBossHitGrenade`), zurückgesetzt in `NoteWave`.
+  Projektil: `NoteHit` **vor** `ApplyDamage` (sonst ist ein getöteter Boss beim Cast schon weg) —
+  Treffer zählen, Boss-Treffer direkt/Abpraller merken, Granaten-Merker löschen; `EventDestroyed`
+  → `NoteMissIfNone` (eigene Kugel ohne Treffer = Fehlschuss). Granate: `NoteGrenadeHit` vor dem
+  Schaden. Ausgewertet in `NoteWaveCleared` (<15 s; ≥1 Treffer und 0 Fehlschüsse) und
+  `NoteGameCleared` (`TotalSeconds` < 1200; nur Abpraller; letzter Boss-Treffer Granate).
+  Podeste + Pokale in `L_Safehouse`: x 1250 / y 300…1350 und (900, −50), `MI_Podium` am `DoorMesh`
+  per Instanz (Default ist `M_Blue`).
 - **Rausschieben aus Kisten (28.09., zweiter Ansatz):** `BP_EnemyBase.PushOutOfGeometry` im Tick
   nach `UpdateLineOfSight`. `ProjectPointToNavigation` der eigenen Position (QueryExtent 300); liegt
   der nächste NavMesh-Punkt mehr als 25 (XY) entfernt, steckt die Kapsel in einer Kiste (das NavMesh
